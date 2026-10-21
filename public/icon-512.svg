@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Prisma da Notícia">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A1130" />
+      <stop offset="1" stop-color="#05091A" />
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6F9BFF" />
+      <stop offset="0.5" stop-color="#B794FF" />
+      <stop offset="1" stop-color="#FFC24B" />
+    </linearGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="7" />
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <rect x="1" y="1" width="510" height="510" rx="111" fill="none" stroke="url(#edge)" stroke-opacity="0.35" stroke-width="2" />
+
+  <!-- feixe branco de entrada -->
+  <g filter="url(#soft)" opacity="0.75">
+    <path d="M34 198 L198 240" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" />
+  </g>
+  <path d="M34 198 L198 240" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" />
+
+  <!-- espectro de saida -->
+  <g stroke-width="7" stroke-linecap="round" opacity="0.95">
+    <path d="M314 240 L486 158" stroke="#6F9BFF" />
+    <path d="M314 240 L490 222" stroke="#8B5CF6" />
+    <path d="M314 240 L490 288" stroke="#FF3B5C" />
+    <path d="M314 240 L474 352" stroke="#FFC24B" />
+  </g>
+
+  <!-- prisma -->
+  <path d="M256 122 L378 352 L134 352 Z" fill="#8B5CF6" fill-opacity="0.1" />
+  <path d="M256 122 L378 352 L134 352 Z" fill="none" stroke="url(#edge)" stroke-width="15" stroke-linejoin="round" />
+  <circle cx="314" cy="240" r="11" fill="#FFFFFF" />
+</svg>

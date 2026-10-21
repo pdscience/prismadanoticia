@@ -1,0 +1,211 @@
+<script setup>
+/** COMPARAÇÃO INTELIGENTE — Brand Book Cap. 5 */
+import { computed, ref } from 'vue'
+
+import DnaRadar from '@/components/analysis/DnaRadar.vue'
+import PBadge from '@/components/ui/PBadge.vue'
+import PButton from '@/components/ui/PButton.vue'
+import PCard from '@/components/ui/PCard.vue'
+import { COMPARISON, DNA_AXES, SAMPLE_ANALYSIS, dnaAverage } from '@/data/prisma'
+import { useReveal } from '@/composables/useReveal'
+
+const { root } = useReveal()
+
+const query = ref(COMPARISON.topic)
+const searched = ref(COMPARISON.topic)
+const selected = ref(COMPARISON.rows[0].outlet)
+
+const rows = computed(() => COMPARISON.rows)
+const current = computed(() => rows.value.find((r) => r.outlet === selected.value))
+
+/** Média do cluster por eixo — a "cobertura média" do fato. */
+const clusterAverage = computed(() => {
+  const acc = {}
+  DNA_AXES.forEach((axis) => {
+    acc[axis.key] = Math.round(
+      rows.value.reduce((sum, r) => sum + r.dna[axis.key], 0) / rows.value.length,
+    )
+  })
+  return acc
+})
+
+/** Maior divergência entre veículos por eixo. */
+const divergences = computed(() =>
+  DNA_AXES.map((axis) => {
+    const values = rows.value.map((r) => ({ outlet: r.outlet, value: r.dna[axis.key] }))
+    const min = values.reduce((a, b) => (b.value < a.value ? b : a))
+    const max = values.reduce((a, b) => (b.value > a.value ? b : a))
+    return { axis, min, max, spread: max.value - min.value }
+  }).sort((a, b) => b.spread - a.spread),
+)
+
+function search() {
+  searched.value = query.value.trim() || COMPARISON.topic
+}
+</script>
+
+<template>
+  <div ref="root" class="pb-10">
+    <div class="container-prisma">
+      <header class="mx-auto max-w-3xl text-center">
+        <PBadge color="#2D6BFF" dot>Cap. 5 · Comparação Inteligente</PBadge>
+        <h1 class="mt-6 text-4xl leading-tight sm:text-5xl">
+          O mesmo fato, <span class="text-gradient">quatro ângulos.</span>
+        </h1>
+        <p class="mx-auto mt-4 max-w-xl text-base text-ink-muted">
+          Pesquise um tema. A IA encontra matérias semelhantes, organiza por veículo e mostra qual
+          destaque cada um escolheu.
+        </p>
+
+        <form class="mt-8 flex flex-col gap-3 sm:flex-row" @submit.prevent="search">
+          <label class="sr-only" for="topic">Tema</label>
+          <input
+            id="topic"
+            v-model="query"
+            type="text"
+            placeholder="Reforma Tributária"
+            class="h-13 flex-1 rounded-full border border-hairline bg-surface px-5 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted/70 focus:border-electric-soft"
+          />
+          <PButton type="submit">Comparar coberturas</PButton>
+        </form>
+      </header>
+
+      <!-- contexto do cluster -->
+      <div class="mt-12 flex flex-wrap items-center justify-center gap-3">
+        <PBadge color="#8B5CF6">{{ searched }}</PBadge>
+        <PBadge color="#6F9BFF">{{ COMPARISON.window }}</PBadge>
+        <PBadge color="#FFC24B">{{ COMPARISON.clusterSize }} matérias no cluster</PBadge>
+      </div>
+
+      <!-- tabela de comparação -->
+      <PCard data-reveal accent="#2D6BFF" :padded="false" class="mt-10 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[720px] text-left">
+            <thead>
+              <tr class="border-b border-hairline text-[0.68rem] uppercase tracking-[0.18em] text-ink-muted">
+                <th class="px-6 py-4 font-medium">Veículo</th>
+                <th class="px-6 py-4 font-medium">Destaque</th>
+                <th class="px-6 py-4 font-medium">Ângulo predominante</th>
+                <th class="px-6 py-4 font-medium">Tom</th>
+                <th class="px-6 py-4 font-medium text-right">Índice</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="row in rows"
+                :key="row.outlet"
+                class="cursor-pointer border-b border-hairline/60 transition-colors last:border-0"
+                :class="selected === row.outlet ? 'bg-electric/8' : 'hover:bg-surface'"
+                @click="selected = row.outlet"
+              >
+                <td class="px-6 py-5">
+                  <span class="flex items-center gap-3">
+                    <span class="h-8 w-1 rounded-full" :style="{ background: row.accent }" />
+                    <span class="font-display text-base font-medium">{{ row.outlet }}</span>
+                  </span>
+                </td>
+                <td class="px-6 py-5">
+                  <span
+                    class="rounded-full px-3 py-1 text-xs font-medium"
+                    :style="{ color: row.accent, background: `${row.accent}16` }"
+                  >
+                    {{ row.highlight }}
+                  </span>
+                </td>
+                <td class="px-6 py-5 text-sm text-ink-muted">{{ row.angle }}</td>
+                <td class="px-6 py-5 text-sm text-ink-muted">{{ row.tone }}</td>
+                <td class="px-6 py-5 text-right font-display text-base font-semibold">
+                  {{ dnaAverage(row.dna) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </PCard>
+
+      <!-- radar comparativo + divergências -->
+      <div class="mt-5 grid gap-5 lg:grid-cols-[1.15fr_1fr]">
+        <PCard data-reveal accent="#8B5CF6" class="p-8">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg">{{ current.outlet }} vs. média do cluster</h2>
+            <div class="flex gap-1.5">
+              <button
+                v-for="row in rows"
+                :key="row.outlet"
+                type="button"
+                class="rounded-full border px-3 py-1 text-xs transition-colors"
+                :class="
+                  selected === row.outlet
+                    ? 'border-transparent text-white'
+                    : 'border-hairline text-ink-muted hover:text-ink'
+                "
+                :style="selected === row.outlet ? { background: row.accent } : {}"
+                @click="selected = row.outlet"
+              >
+                {{ row.outlet }}
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-7">
+            <DnaRadar
+              :key="current.outlet"
+              :values="current.dna"
+              :compare="clusterAverage"
+              compare-label="Média do cluster"
+              :size="400"
+            />
+          </div>
+        </PCard>
+
+        <div class="space-y-5">
+          <PCard data-reveal accent="#FF3B5C">
+            <h2 class="text-lg">Onde os veículos mais divergem</h2>
+            <p class="mt-1.5 text-xs text-ink-muted">
+              Diferença entre a maior e a menor pontuação de cada eixo.
+            </p>
+            <ul class="mt-5 space-y-4">
+              <li v-for="d in divergences.slice(0, 4)" :key="d.axis.key">
+                <div class="flex items-baseline justify-between text-sm">
+                  <span class="font-medium">{{ d.axis.label }}</span>
+                  <span class="font-display font-semibold" :style="{ color: d.axis.color }">
+                    {{ d.spread }} pts
+                  </span>
+                </div>
+                <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/10">
+                  <div
+                    class="h-full rounded-full"
+                    :style="{
+                      width: `${d.spread}%`,
+                      background: `linear-gradient(90deg, ${d.axis.color}55, ${d.axis.color})`,
+                    }"
+                  />
+                </div>
+                <p class="mt-1.5 text-[0.7rem] text-ink-muted">
+                  {{ d.max.outlet }} ({{ d.max.value }}) · {{ d.min.outlet }} ({{ d.min.value }})
+                </p>
+              </li>
+            </ul>
+          </PCard>
+
+          <PCard data-reveal accent="#FFC24B">
+            <h2 class="text-lg">Leitura do Prisma</h2>
+            <p class="mt-3 text-sm leading-relaxed text-ink-muted">
+              O cluster mostra um fato tratado por quatro enquadramentos distintos. Os veículos
+              econômicos sustentam mais dados; os de perfil crítico usam linguagem mais intensa e
+              ampliam o ângulo social.
+            </p>
+            <div class="mt-5 flex flex-wrap gap-3">
+              <PButton to="/blindspot" variant="outline" size="sm">Ver quem ficou de fora</PButton>
+              <PButton to="/replay" variant="ghost" size="sm">Ver a linha do tempo</PButton>
+            </div>
+          </PCard>
+        </div>
+      </div>
+
+      <p class="mt-8 text-center text-xs text-ink-muted">
+        Análise de referência: “{{ SAMPLE_ANALYSIS.title }}”
+      </p>
+    </div>
+  </div>
+</template>

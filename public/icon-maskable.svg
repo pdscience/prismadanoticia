@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Prisma da Notícia">
+  <defs>
+    <linearGradient id="mbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A1130" />
+      <stop offset="1" stop-color="#05091A" />
+    </linearGradient>
+    <linearGradient id="medge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6F9BFF" />
+      <stop offset="0.5" stop-color="#B794FF" />
+      <stop offset="1" stop-color="#FFC24B" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#mbg)" />
+
+  <g transform="translate(256 256) scale(0.62) translate(-256 -256)">
+    <path d="M60 206 L206 242" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" />
+    <g stroke-width="9" stroke-linecap="round">
+      <path d="M306 242 L452 172" stroke="#6F9BFF" />
+      <path d="M306 242 L456 230" stroke="#8B5CF6" />
+      <path d="M306 242 L456 286" stroke="#FF3B5C" />
+      <path d="M306 242 L442 342" stroke="#FFC24B" />
+    </g>
+    <path d="M256 132 L370 346 L142 346 Z" fill="#8B5CF6" fill-opacity="0.12" />
+    <path d="M256 132 L370 346 L142 346 Z" fill="none" stroke="url(#medge)" stroke-width="16" stroke-linejoin="round" />
+    <circle cx="306" cy="242" r="11" fill="#FFFFFF" />
+  </g>
+</svg>

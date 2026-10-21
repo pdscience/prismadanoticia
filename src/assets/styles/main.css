@@ -1,0 +1,247 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   PRISMA DA NOTÍCIA — Design System (Brand Book V1.0)
+   Paleta Premium: Midnight · Electric Blue · Prism Purple · Energy Red · Insight Gold
+   Tipografia: Space Grotesk (logo + títulos) · Inter (interface)
+   ========================================================================== */
+
+@theme {
+  /* --- Paleta Premium --- */
+  --color-midnight: #05091a;
+  --color-midnight-800: #080e24;
+  --color-midnight-700: #0d1430;
+  --color-midnight-600: #141d42;
+
+  --color-electric: #2d6bff;
+  --color-electric-soft: #6f9bff;
+  --color-electric-deep: #1747c9;
+
+  --color-prism: #8b5cf6;
+  --color-prism-soft: #b794ff;
+  --color-prism-deep: #6832d6;
+
+  --color-energy: #ff3b5c;
+  --color-energy-soft: #ff7a90;
+
+  --color-insight: #ffc24b;
+  --color-insight-soft: #ffd98a;
+
+  --color-mint: #2ee6a8;
+
+  /* --- Tipografia --- */
+  --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
+  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+
+  /* --- Ritmo & sombras --- */
+  --radius-card: 1.25rem;
+  --shadow-glow-electric: 0 0 40px -8px rgb(45 107 255 / 0.55);
+  --shadow-glow-prism: 0 0 40px -8px rgb(139 92 246 / 0.55);
+
+  /* --- Animações --- */
+  --animate-pulse-ring: pulse-ring 3.2s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.7;
+  }
+  80%,
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+/* ==========================================================================
+   Tokens semânticos (dark = padrão da marca, light = modo claro)
+   ========================================================================== */
+
+:root,
+[data-theme='dark'] {
+  --brand-canvas: #05091a;
+  --brand-surface: rgb(255 255 255 / 0.04);
+  /* Opaco o suficiente para dispensar backdrop-filter nos cartoes. */
+  --brand-surface-card: rgb(255 255 255 / 0.045);
+  --brand-surface-strong: rgb(13 20 48 / 0.85);
+  --brand-border: rgb(255 255 255 / 0.1);
+  --brand-border-strong: rgb(255 255 255 / 0.18);
+  --brand-text: #f2f5ff;
+  --brand-text-muted: #9aa6c9;
+  --brand-grid: rgb(255 255 255 / 0.045);
+}
+
+[data-theme='light'] {
+  --brand-canvas: #f6f7fc;
+  --brand-surface: rgb(255 255 255 / 0.9);
+  --brand-surface-card: #ffffff;
+  --brand-surface-strong: #ffffff;
+  --brand-border: rgb(5 9 26 / 0.09);
+  --brand-border-strong: rgb(5 9 26 / 0.16);
+  --brand-text: #0b1024;
+  --brand-text-muted: #55607f;
+  --brand-grid: rgb(5 9 26 / 0.05);
+}
+
+@theme inline {
+  --color-canvas: var(--brand-canvas);
+  --color-surface: var(--brand-surface);
+  --color-surface-card: var(--brand-surface-card);
+  --color-surface-strong: var(--brand-surface-strong);
+  --color-hairline: var(--brand-border);
+  --color-hairline-strong: var(--brand-border-strong);
+  --color-ink: var(--brand-text);
+  --color-ink-muted: var(--brand-text-muted);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  * {
+    border-color: var(--brand-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--brand-canvas);
+    color: var(--brand-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    transition: background-color 0.4s ease, color 0.4s ease;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--color-prism) 45%, transparent);
+    color: #fff;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--color-electric) 45%, transparent);
+    border-radius: 999px;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-electric-soft);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+}
+
+/* ==========================================================================
+   Utilitários da marca
+   ========================================================================== */
+
+@utility container-prisma {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@utility text-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-electric-soft) 0%,
+    var(--color-prism-soft) 45%,
+    var(--color-insight) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/**
+ * `glass` usa backdrop-filter e é reservado às poucas superfícies realmente
+ * sobrepostas ao conteúdo (navbar fixa, tooltips, menu mobile). Desfoque de
+ * fundo é recalculado a cada frame de scroll, então não deve ser aplicado em
+ * dezenas de cartões simultâneos.
+ */
+@utility glass {
+  background-color: var(--brand-surface);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--brand-border);
+}
+
+/** Superfície dos cartões: mesmo visual, sem custo de backdrop-filter. */
+@utility surface-card {
+  background-color: var(--brand-surface-card);
+  border: 1px solid var(--brand-border);
+}
+
+@utility prism-grid {
+  background-image: linear-gradient(var(--brand-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--brand-grid) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* Transição de rotas */
+.route-fade-enter-active,
+.route-fade-leave-active {
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.route-fade-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.route-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /**
+   * Sem animação, os elementos que começam ocultos precisam do estado final:
+   * o hero e as seções são revelados por JS, que não roda neste modo.
+   */
+  [data-reveal],
+  [data-hero],
+  [data-prism],
+  [data-ray],
+  [data-ray-label],
+  [data-core] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  [data-beam],
+  [data-ray] {
+    stroke-dashoffset: 0 !important;
+  }
+}
