@@ -28,7 +28,8 @@ Key patterns:
 - Public reads use `src/lib/insforge.js` + `src/lib/services.js` with the anon key; `VITE_USE_MOCK=true` forces fixtures.
 - `functions/analyze-url.ts` is the only writer: it extracts the article, calls OpenRouter, and upserts `news` + `analyses` with `createAdminClient`.
 - Deploy it with `npx -y @insforge/cli@latest functions deploy analyze-url --file functions/analyze-url.ts`.
-- Server-only secrets: `OPENROUTER_API_KEY` (required), `OPENROUTER_MODEL` (optional) and `RATE_LIMIT_SALT` (required for IP hashing). Never use a `VITE_` prefix.
+- Server-only secrets: `OPENROUTER_API_KEY` (required), `OPENROUTER_MODEL` (optional), `OPENROUTER_EMBEDDING_MODEL` (optional, default `openai/text-embedding-3-small`) and `RATE_LIMIT_SALT` (required for IP hashing). Never use a `VITE_` prefix.
+- New analyses generate a 1536-dim embedding, join the nearest cluster (`>= 0.78` cosine similarity) or create one for the topic. Embedding failures do not block saving the analysis.
 - The function limits 10 new analyses per IP/hour and 100 globally; cached URLs bypass the limit.
 - Schema and seed live in `migrations/`; apply with `npx -y @insforge/cli@latest db migrations up --all`.
 - Deploy the frontend with `npx -y @insforge/cli@latest deployments deploy .` after setting the `VITE_*` env vars in `deployments env set`.

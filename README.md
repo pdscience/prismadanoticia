@@ -167,6 +167,11 @@ npx -y @insforge/cli@latest functions invoke analyze-url \
 
 Modelo padrão: `openai/gpt-4o-mini`. Para trocar, defina o segredo `OPENROUTER_MODEL`.
 
+Depois da análise, a função gera um embedding de 1536 dimensões com
+`openai/text-embedding-3-small` (configurável em `OPENROUTER_EMBEDDING_MODEL`) e usa
+`match_news` para entrar no cluster mais próximo (similaridade de cosseno `>= 0.78`) ou criar um
+cluster para o tema. Se o embedding falhar, a análise ainda é salva.
+
 ### Limites e deploy do frontend
 
 Cada IP pode disparar 10 análises novas por hora; o projeto também tem um teto global de 100 por

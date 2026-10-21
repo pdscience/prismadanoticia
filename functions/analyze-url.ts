@@ -22,6 +22,8 @@ const MAX_PAGE_BYTES = 2_000_000
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
 const RATE_LIMIT_PER_IP = 10
 const RATE_LIMIT_GLOBAL = 100
+const EMBEDDING_DIMENSIONS = 1536
+const CLUSTER_SIMILARITY = 0.78
 
 const SYSTEM_PROMPT = `Você é o Prisma Engine, um analisador de mídia brasileiro.
 Analise APENAS o texto fornecido e responda SOMENTE com um objeto JSON válido, sem markdown.
@@ -419,6 +421,60 @@ async function analyzeWithAI(article) {
   return normalizeAnalysis(parseJsonContent(content), article)
 }
 
+function buildEmbeddingText(article, analysis) {
+  const summary = Array.isArray(analysis.summary) ? analysis.summary.join(' ') : ''
+  return [
+    `Título: ${analysis.title}`,
+    `Tema: ${analysis.topic}`,
+    summary,
+    article.text.slice(0, 6000),
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+    .slice(0, 12000)
+}
+
+async function embedArticle(article, analysis) {
+  const apiKey = Deno.env.get('OPENROUTER_API_KEY')
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY não configurada no projeto.')
+
+  const response = await fetch('https://openrouter.ai/api/v1/embeddings', {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      'content-type': 'application/json',
+      'http-referer': 'https://github.com/pdscience/prismadanoticia',
+      'x-title': 'Prisma da Notícia',
+    },
+    body: JSON.stringify({
+      model: Deno.env.get('OPENROUTER_EMBEDDING_MODEL') ?? 'openai/text-embedding-3-small',
+      input: buildEmbeddingText(article, analysis),
+      encoding_format: 'float',
+    }),
+    signal: AbortSignal.timeout(30000),
+  })
+
+  if (!response.ok) {
+    const detail = await response.text()
+    throw new Error(`OpenRouter embeddings respondeu ${response.status}: ${detail.slice(0, 200)}`)
+  }
+
+  const payload = await response.json()
+  const embedding = payload?.data?.[0]?.embedding
+  if (
+    !Array.isArray(embedding) ||
+    embedding.length !== EMBEDDING_DIMENSIONS ||
+    embedding.some((value) => !Number.isFinite(value))
+  ) {
+    throw new Error('Embedding inválido retornado pelo OpenRouter.')
+  }
+  return embedding
+}
+
+function toVectorLiteral(embedding) {
+  return `[${embedding.join(',')}]`
+}
+
 function expect(result, context) {
   if (result?.error) throw new Error(`${context}: ${result.error.message || 'erro no banco'}`)
   return result?.data
@@ -505,7 +561,7 @@ async function findCached(url) {
     await getAdmin()
       .database.from('analysis_feed')
       .select(
-        'id,url,title,outlet,author,published_at,topic,reading_time,confidence,source_diversity,cluster_size,dominant_frame,summary,evidences,signals,dna',
+        'id,url,title,outlet,author,published_at,topic,reading_time,confidence,source_diversity,cluster_id,cluster_size,dominant_frame,summary,evidences,signals,dna',
       )
       .eq('url', url)
       .maybeSingle(),
@@ -523,6 +579,7 @@ async function findCached(url) {
     readingTime: row.reading_time ?? 1,
     confidence: row.confidence,
     sourceDiversity: row.source_diversity,
+    clusterId: row.cluster_id ?? null,
     clusterSize: row.cluster_size ?? 1,
     dominantFrame: row.dominant_frame,
     summary: row.summary ?? [],
@@ -530,6 +587,155 @@ async function findCached(url) {
     evidences: row.evidences ?? [],
     signals: row.signals ?? [],
   }
+}
+
+async function getOrCreateCluster(admin, topicId, label) {
+  const existing = expect(
+    await admin.database
+      .from('clusters')
+      .select('id,size')
+      .eq('topic_id', topicId)
+      .eq('label', label)
+      .maybeSingle(),
+    'Ler cluster',
+  )
+  if (existing?.id) return existing
+
+  const id = crypto.randomUUID()
+  const now = new Date().toISOString()
+  const created = await admin.database.from('clusters').insert([
+    {
+      id,
+      topic_id: topicId,
+      label,
+      size: 0,
+      window_start: now,
+      window_end: now,
+    },
+  ])
+  if (!created?.error) return { id, size: 0 }
+
+  const retry = expect(
+    await admin.database
+      .from('clusters')
+      .select('id,size')
+      .eq('topic_id', topicId)
+      .eq('label', label)
+      .maybeSingle(),
+    'Reler cluster',
+  )
+  if (retry?.id) return retry
+  throw new Error(`Não foi possível registrar cluster: ${created.error.message}`)
+}
+
+async function readClusterSize(admin, clusterId) {
+  if (!clusterId) return 1
+  const row = expect(
+    await admin.database.from('clusters').select('size').eq('id', clusterId).maybeSingle(),
+    'Ler tamanho do cluster',
+  )
+  return Math.max(row?.size ?? 1, 1)
+}
+
+async function adjustClusterSize(admin, clusterId, delta) {
+  const row = expect(
+    await admin.database.from('clusters').select('size').eq('id', clusterId).maybeSingle(),
+    'Ler tamanho do cluster',
+  )
+  if (!row) return 1
+
+  const size = Math.max(0, (row.size ?? 0) + delta)
+  expect(
+    await admin.database
+      .from('clusters')
+      .update({ size })
+      .eq('id', clusterId)
+      .select('id')
+      .maybeSingle(),
+    'Atualizar tamanho do cluster',
+  )
+  return Math.max(size, 1)
+}
+
+async function assignCluster(admin, { newsId, topicId, topicLabel, embedding, previousClusterId }) {
+  const matches =
+    expect(
+      await admin.database.rpc('match_news', {
+        query_embedding: embedding,
+        match_count: 5,
+        match_threshold: CLUSTER_SIMILARITY,
+      }),
+      'Buscar notícias similares',
+    ) ?? []
+  const candidate = matches.find((row) => row.id !== newsId)
+  let candidateNews = null
+  let cluster = null
+
+  if (candidate) {
+    candidateNews = expect(
+      await admin.database
+        .from('news')
+        .select('id,cluster_id,topic_id')
+        .eq('id', candidate.id)
+        .maybeSingle(),
+      'Ler notícia similar',
+    )
+    if (candidateNews?.cluster_id) {
+      cluster = expect(
+        await admin.database
+          .from('clusters')
+          .select('id,size')
+          .eq('id', candidateNews.cluster_id)
+          .maybeSingle(),
+        'Ler cluster similar',
+      )
+    }
+  }
+
+  let candidateAssigned = false
+  if (!cluster) {
+    const clusterTopicId = candidateNews?.topic_id ?? topicId
+    let clusterLabel = topicLabel
+    if (clusterTopicId !== topicId) {
+      const topic = expect(
+        await admin.database.from('topics').select('label').eq('id', clusterTopicId).maybeSingle(),
+        'Ler tema do cluster',
+      )
+      clusterLabel = topic?.label ?? topicLabel
+    }
+    cluster = await getOrCreateCluster(admin, clusterTopicId, clusterLabel)
+    if (candidateNews && !candidateNews.cluster_id) {
+      expect(
+        await admin.database
+          .from('news')
+          .update({ cluster_id: cluster.id })
+          .eq('id', candidateNews.id)
+          .select('id')
+          .maybeSingle(),
+        'Agrupar notícia similar',
+      )
+      candidateAssigned = true
+    }
+  }
+
+  expect(
+    await admin.database
+      .from('news')
+      .update({ embedding: toVectorLiteral(embedding), cluster_id: cluster.id })
+      .eq('id', newsId)
+      .select('id')
+      .maybeSingle(),
+    'Atualizar embedding da notícia',
+  )
+
+  let delta = 0
+  if (previousClusterId !== cluster.id) {
+    if (previousClusterId) await adjustClusterSize(admin, previousClusterId, -1)
+    delta += 1
+  }
+  if (candidateAssigned) delta += 1
+  const clusterSize = await adjustClusterSize(admin, cluster.id, delta)
+  return { clusterId: cluster.id, clusterSize }
 }
 
 async function persistAnalysis(article, analysis) {
@@ -549,7 +755,7 @@ async function persistAnalysis(article, analysis) {
   })
 
   const existingNews = expect(
-    await admin.database.from('news').select('id').eq('url', article.url).maybeSingle(),
+    await admin.database.from('news').select('id,cluster_id').eq('url', article.url).maybeSingle(),
     'Ler notícia',
   )
   const newsRow = {
@@ -623,11 +829,29 @@ async function persistAnalysis(article, analysis) {
     )
   }
 
+  let clusterId = existingNews?.cluster_id ?? null
+  let clusterSize = await readClusterSize(admin, clusterId)
+  try {
+    const embedding = await embedArticle(article, analysis)
+    const grouped = await assignCluster(admin, {
+      newsId,
+      topicId,
+      topicLabel: analysis.topic,
+      embedding,
+      previousClusterId: existingNews?.cluster_id ?? null,
+    })
+    clusterId = grouped.clusterId
+    clusterSize = grouped.clusterSize
+  } catch (error) {
+    console.error('[analyze-url] cluster', error)
+  }
+
   return {
     id: analysisId,
     url: article.url,
     ...analysis,
-    clusterSize: 1,
+    clusterId,
+    clusterSize,
   }
 }
 

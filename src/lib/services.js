@@ -40,6 +40,7 @@ function mapAnalysis(row) {
     readingTime: row.reading_time,
     confidence: row.confidence,
     sourceDiversity: row.source_diversity,
+    clusterId: row.cluster_id ?? null,
     clusterSize: row.cluster_size ?? 1,
     dominantFrame: row.dominant_frame,
     summary: row.summary ?? [],
@@ -84,7 +85,7 @@ export async function fetchAnalysis(url = SAMPLE_ANALYSIS.url) {
     await insforge.database
       .from('analysis_feed')
       .select(
-        'id,url,title,outlet,author,published_at,topic,reading_time,confidence,source_diversity,cluster_size,dominant_frame,summary,evidences,signals,dna',
+        'id,url,title,outlet,author,published_at,topic,reading_time,confidence,source_diversity,cluster_id,cluster_size,dominant_frame,summary,evidences,signals,dna',
       )
       .eq('url', url)
       .maybeSingle(),

@@ -23,6 +23,7 @@ describe.skipIf(!live)('serviços InsForge ao vivo', () => {
     const analysis = await fetchSampleAnalysis()
     expect(analysis.title).toContain('reforma tributária')
     expect(Object.keys(analysis.dna)).toHaveLength(6)
+    expect(analysis.clusterId).toBeTruthy()
   })
 
   it('carrega uma análise por URL', async () => {
