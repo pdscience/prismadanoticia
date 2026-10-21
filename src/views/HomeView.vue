@@ -1,5 +1,7 @@
 <script setup>
 /** LANDING PAGE PREMIUM — Brand Book Cap. 3 */
+import { onMounted, ref } from 'vue'
+
 import BrandManifesto from '@/components/landing/BrandManifesto.vue'
 import DnaShowcase from '@/components/landing/DnaShowcase.vue'
 import FeatureGrid from '@/components/landing/FeatureGrid.vue'
@@ -11,9 +13,15 @@ import PButton from '@/components/ui/PButton.vue'
 import ShareCard from '@/components/intel/ShareCard.vue'
 import SectionHeading from '@/components/ui/SectionHeading.vue'
 import { SAMPLE_ANALYSIS } from '@/data'
+import { fetchSampleAnalysis } from '@/lib/services'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
+const sample = ref(SAMPLE_ANALYSIS)
+
+onMounted(async () => {
+  sample.value = await fetchSampleAnalysis()
+})
 </script>
 
 <template>
@@ -60,11 +68,7 @@ const { root } = useReveal()
           </div>
 
           <div data-reveal>
-            <ShareCard
-              :dna="SAMPLE_ANALYSIS.dna"
-              :topic="SAMPLE_ANALYSIS.topic"
-              :outlet="SAMPLE_ANALYSIS.outlet"
-            />
+            <ShareCard :dna="sample.dna" :topic="sample.topic" :outlet="sample.outlet" />
           </div>
         </div>
       </div>

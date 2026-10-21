@@ -14,8 +14,8 @@ import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
 import ScoreRing from '@/components/ui/ScoreRing.vue'
 import { DNA_AXES, ENGINE_PIPELINE, SAMPLE_ANALYSIS, frame } from '@/data'
-import { analyzeUrl } from '@/lib/analysis'
 import { dnaAverage } from '@/lib/radar'
+import { fetchAnalysis, fetchSampleAnalysis } from '@/lib/services'
 
 const route = useRoute()
 const router = useRouter()
@@ -60,7 +60,7 @@ async function runAnalysis(url) {
     await new Promise((resolve) => setTimeout(resolve, 260))
   }
 
-  analysis.value = analyzeUrl(url)
+  analysis.value = await fetchAnalysis(url)
   activeStep.value = ENGINE_PIPELINE.length
   loading.value = false
 }
@@ -72,9 +72,9 @@ function submit() {
   runAnalysis(url)
 }
 
-function useSample() {
+async function useSample() {
   input.value = ''
-  analysis.value = SAMPLE_ANALYSIS
+  analysis.value = await fetchSampleAnalysis()
   activeStep.value = -1
   router.replace({ name: 'analysis' })
 }
@@ -89,8 +89,12 @@ watch(
   },
 )
 
-onMounted(() => {
-  if (input.value) runAnalysis(input.value)
+onMounted(async () => {
+  if (input.value) {
+    await runAnalysis(input.value)
+  } else {
+    analysis.value = await fetchSampleAnalysis()
+  }
 })
 </script>
 

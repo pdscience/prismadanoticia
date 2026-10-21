@@ -1,14 +1,22 @@
 <script setup>
 /** Vitrine do DNA da Notícia na landing (Cap. 4 — assinatura visual). */
+import { onMounted, ref } from 'vue'
+
 import DnaRadar from '@/components/analysis/DnaRadar.vue'
 import MeterBar from '@/components/ui/MeterBar.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
 import SectionHeading from '@/components/ui/SectionHeading.vue'
 import { DNA_AXES, SAMPLE_ANALYSIS } from '@/data'
+import { fetchSampleAnalysis } from '@/lib/services'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
+const sample = ref(SAMPLE_ANALYSIS)
+
+onMounted(async () => {
+  sample.value = await fetchSampleAnalysis()
+})
 </script>
 
 <template>
@@ -23,7 +31,7 @@ const { root } = useReveal()
 
       <div class="mt-16 grid items-center gap-10 lg:grid-cols-[1fr_1.1fr]">
         <PCard accent="#8B5CF6" data-reveal class="p-8">
-          <DnaRadar :values="SAMPLE_ANALYSIS.dna" :size="380" />
+          <DnaRadar :values="sample.dna" :size="380" />
         </PCard>
 
         <div class="space-y-4">
@@ -36,7 +44,7 @@ const { root } = useReveal()
             >
               <MeterBar
                 :label="axis.label"
-                :value="SAMPLE_ANALYSIS.dna[axis.key]"
+                :value="sample.dna[axis.key]"
                 :color="axis.color"
                 :hint="`Mede ${axis.measures}`"
               />

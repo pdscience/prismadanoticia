@@ -5,16 +5,18 @@
  * Importante: a comparação sempre considera um período específico antes de
  * indicar ausência de cobertura.
  */
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import MeterBar from '@/components/ui/MeterBar.vue'
 import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
 import { BLINDSPOT } from '@/data'
+import { fetchBlindspot } from '@/lib/services'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
+const data = ref(BLINDSPOT)
 
 const periods = [
   { key: 7, label: '7 dias' },
@@ -28,7 +30,7 @@ const query = ref(BLINDSPOT.topic)
 
 const severityColor = { alta: '#FF3B5C', média: '#FFC24B', baixa: '#6F9BFF' }
 
-const maxArticles = computed(() => Math.max(...BLINDSPOT.covered.map((c) => c.articles)))
+const maxArticles = computed(() => Math.max(...data.value.covered.map((c) => c.articles)))
 
 /** Quanto maior o período, mais confiável é afirmar ausência de cobertura. */
 const reliability = computed(() => {
@@ -37,8 +39,16 @@ const reliability = computed(() => {
 })
 
 const missing = computed(() =>
-  period.value >= 30 ? BLINDSPOT.missing : BLINDSPOT.missing.slice(0, period.value >= 15 ? 3 : 2),
+  period.value >= 30 ? data.value.missing : data.value.missing.slice(0, period.value >= 15 ? 3 : 2),
 )
+
+async function investigate() {
+  data.value = await fetchBlindspot(query.value)
+}
+
+onMounted(async () => {
+  data.value = await fetchBlindspot()
+})
 </script>
 
 <template>
@@ -64,7 +74,7 @@ const missing = computed(() =>
             placeholder="Tema investigado"
             class="h-13 flex-1 rounded-full border border-hairline bg-surface px-5 text-sm text-ink outline-none transition-colors focus:border-energy-soft"
           />
-          <PButton type="button">Investigar</PButton>
+          <PButton type="button" @click="investigate">Investigar</PButton>
         </div>
 
         <div class="flex items-center gap-2 rounded-full border border-hairline p-1">
@@ -102,7 +112,7 @@ const missing = computed(() =>
           </span>
           <p class="flex-1 text-sm leading-relaxed text-ink-muted">
             <strong class="text-ink">Regra metodológica.</strong>
-            {{ BLINDSPOT.note }} Período selecionado:
+            {{ data.note }} Período selecionado:
             <strong class="text-ink">{{ period }} dias</strong>.
           </p>
           <div class="text-center">
@@ -117,10 +127,10 @@ const missing = computed(() =>
         <PCard data-reveal accent="#2EE6A8">
           <div class="flex items-center justify-between gap-3">
             <h2 class="text-lg">Cobriram o tema</h2>
-            <PBadge color="#2EE6A8">{{ BLINDSPOT.covered.length }} veículos</PBadge>
+            <PBadge color="#2EE6A8">{{ data.covered.length }} veículos</PBadge>
           </div>
           <ul class="mt-6 space-y-4">
-            <li v-for="c in BLINDSPOT.covered" :key="c.outlet">
+            <li v-for="c in data.covered" :key="c.outlet">
               <div class="flex items-baseline justify-between text-sm">
                 <span class="font-medium">{{ c.outlet }}</span>
                 <span class="font-display text-sm font-semibold text-mint">{{ c.articles }}</span>
@@ -182,7 +192,7 @@ const missing = computed(() =>
         </p>
         <div class="mt-6 grid gap-5 sm:grid-cols-2">
           <MeterBar
-            v-for="s in BLINDSPOT.subthemes"
+            v-for="s in data.subthemes"
             :key="s.label"
             :label="s.label"
             :value="s.coverage"

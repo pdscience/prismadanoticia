@@ -1,6 +1,6 @@
 <script setup>
 /** MAPA DE POLARIZAÇÃO EM TEMPO REAL — o moat do PRISMA. */
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import PolarizationMap from '@/components/intel/PolarizationMap.vue'
 import MeterBar from '@/components/ui/MeterBar.vue'
@@ -10,9 +10,11 @@ import PCard from '@/components/ui/PCard.vue'
 import { POLARIZATION_THEMES, STATES } from '@/data'
 import { polarizationColor } from '@/lib/colors'
 import { dominantTheme } from '@/lib/intel'
+import { fetchStates } from '@/lib/services'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
+const states = ref(STATES)
 
 const modes = [
   { key: 'dominante', label: 'Tema dominante' },
@@ -24,13 +26,15 @@ const mode = ref('dominante')
 const selected = ref(STATES.find((s) => s.uf === 'SP'))
 
 const ranking = computed(() =>
-  [...STATES].sort((a, b) => b.polarization - a.polarization).slice(0, 6),
+  [...states.value].sort((a, b) => b.polarization - a.polarization).slice(0, 6),
 )
 
 const nationalMix = computed(() => {
   const totals = {}
   POLARIZATION_THEMES.forEach((t) => {
-    totals[t.key] = Math.round(STATES.reduce((sum, s) => sum + s.themes[t.key], 0) / STATES.length)
+    totals[t.key] = Math.round(
+      states.value.reduce((sum, s) => sum + s.themes[t.key], 0) / states.value.length,
+    )
   })
   return totals
 })
@@ -41,7 +45,12 @@ const selectedThemes = computed(() =>
   ),
 )
 
-const totalOutlets = STATES.reduce((sum, s) => sum + s.outlets, 0)
+const totalOutlets = computed(() => states.value.reduce((sum, s) => sum + s.outlets, 0))
+
+onMounted(async () => {
+  states.value = await fetchStates()
+  selected.value = states.value.find((s) => s.uf === 'SP') ?? states.value[0]
+})
 </script>
 
 <template>

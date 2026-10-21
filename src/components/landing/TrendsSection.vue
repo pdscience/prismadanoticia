@@ -1,13 +1,21 @@
 <script setup>
 /** Tendências — cada cartão mostra quantos veículos publicaram sobre o tema (Cap. 3). */
+import { computed, onMounted, ref } from 'vue'
+
 import PBadge from '@/components/ui/PBadge.vue'
 import PCard from '@/components/ui/PCard.vue'
 import SectionHeading from '@/components/ui/SectionHeading.vue'
 import { TRENDS, frame } from '@/data'
+import { fetchTrends } from '@/lib/services'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
-const maxOutlets = Math.max(...TRENDS.map((t) => t.outlets))
+const trends = ref(TRENDS)
+const maxOutlets = computed(() => Math.max(...trends.value.map((t) => t.outlets)))
+
+onMounted(async () => {
+  trends.value = await fetchTrends()
+})
 </script>
 
 <template>
@@ -26,7 +34,7 @@ const maxOutlets = Math.max(...TRENDS.map((t) => t.outlets))
 
       <div class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <PCard
-          v-for="trend in TRENDS"
+          v-for="trend in trends"
           :key="trend.id"
           :accent="trend.accent"
           data-reveal

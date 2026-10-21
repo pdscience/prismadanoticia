@@ -1,6 +1,6 @@
 <script setup>
 /** COMPARAÇÃO INTELIGENTE — Brand Book Cap. 5 */
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import DnaRadar from '@/components/analysis/DnaRadar.vue'
 import PBadge from '@/components/ui/PBadge.vue'
@@ -8,15 +8,17 @@ import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
 import { COMPARISON, DNA_AXES, SAMPLE_ANALYSIS } from '@/data'
 import { dnaAverage } from '@/lib/radar'
+import { fetchComparison } from '@/lib/services'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
 
+const comparison = ref(COMPARISON)
 const query = ref(COMPARISON.topic)
 const searched = ref(COMPARISON.topic)
 const selected = ref(COMPARISON.rows[0].outlet)
 
-const rows = computed(() => COMPARISON.rows)
+const rows = computed(() => comparison.value.rows)
 const current = computed(() => rows.value.find((r) => r.outlet === selected.value))
 
 /** Média do cluster por eixo — a "cobertura média" do fato. */
@@ -40,9 +42,17 @@ const divergences = computed(() =>
   }).sort((a, b) => b.spread - a.spread),
 )
 
-function search() {
-  searched.value = query.value.trim() || COMPARISON.topic
+async function search() {
+  const term = query.value.trim() || COMPARISON.topic
+  searched.value = term
+  comparison.value = await fetchComparison(term)
+  selected.value = comparison.value.rows[0]?.outlet ?? ''
 }
+
+onMounted(async () => {
+  comparison.value = await fetchComparison()
+  selected.value = comparison.value.rows[0]?.outlet ?? ''
+})
 </script>
 
 <template>
@@ -74,8 +84,8 @@ function search() {
       <!-- contexto do cluster -->
       <div class="mt-12 flex flex-wrap items-center justify-center gap-3">
         <PBadge color="#8B5CF6">{{ searched }}</PBadge>
-        <PBadge color="#6F9BFF">{{ COMPARISON.window }}</PBadge>
-        <PBadge color="#FFC24B">{{ COMPARISON.clusterSize }} matérias no cluster</PBadge>
+        <PBadge color="#6F9BFF">{{ comparison.window }}</PBadge>
+        <PBadge color="#FFC24B">{{ comparison.clusterSize }} matérias no cluster</PBadge>
       </div>
 
       <!-- tabela de comparação -->

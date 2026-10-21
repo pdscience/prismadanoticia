@@ -3,23 +3,26 @@
  * PRISMA REPLAY — Brand Book Cap. 7
  * O usuário assiste à evolução da narrativa. É quase um "Google Maps da notícia".
  */
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
 import { REPLAY, frame } from '@/data'
+import { fetchReplay } from '@/lib/services'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
 
-const frames = REPLAY.frames
+const replay = ref(REPLAY)
+const frames = computed(() => replay.value.frames)
+const topic = computed(() => replay.value.topic)
 const index = ref(0)
 const playing = ref(false)
 let timer = null
 
-const currentFrame = computed(() => frames[index.value])
-const maxOutlets = Math.max(...frames.map((f) => f.outlets))
+const currentFrame = computed(() => frames.value[index.value])
+const maxOutlets = computed(() => Math.max(...frames.value.map((f) => f.outlets)))
 
 // Enquadramentos da mistura, na ordem de exibição, lendo as cores canônicas.
 const mixKeys = ['politica', 'economia', 'social', 'seguranca'].map((key) => ({
@@ -38,15 +41,19 @@ function stop() {
 function play() {
   if (playing.value) return stop()
   playing.value = true
-  if (index.value >= frames.length - 1) index.value = 0
+  if (index.value >= frames.value.length - 1) index.value = 0
   timer = setInterval(() => {
-    if (index.value >= frames.length - 1) return stop()
+    if (index.value >= frames.value.length - 1) return stop()
     index.value += 1
   }, 1800)
 }
 
 watch(index, (v) => {
-  if (v >= frames.length - 1) stop()
+  if (v >= frames.value.length - 1) stop()
+})
+
+onMounted(async () => {
+  replay.value = await fetchReplay()
 })
 
 onBeforeUnmount(stop)
@@ -84,7 +91,7 @@ onBeforeUnmount(stop)
               </svg>
             </button>
             <div>
-              <p class="font-display text-lg">{{ REPLAY.topic }}</p>
+              <p class="font-display text-lg">{{ topic }}</p>
               <p class="text-xs text-ink-muted">
                 Quadro {{ index + 1 }} de {{ frames.length }} · {{ currentFrame.time }}
               </p>
