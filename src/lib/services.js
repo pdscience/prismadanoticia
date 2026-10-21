@@ -1,4 +1,4 @@
-import { BLINDSPOT, COMPARISON, REPLAY, SAMPLE_ANALYSIS, STATES, TRENDS } from '@/data'
+import { BIAS_SAMPLE, BLINDSPOT, COMPARISON, REPLAY, SAMPLE_ANALYSIS, STATES, TRENDS } from '@/data'
 import { analyzeUrl } from '@/lib/analysis'
 import { insforge, useMockData } from '@/lib/insforge'
 
@@ -258,4 +258,85 @@ export function fetchStates() {
     },
     () => STATES,
   )
+}
+
+function mapBiasSignal(signal) {
+  return {
+    type: signal.type,
+    strength: signal.strength,
+    quote: signal.quote,
+    explanation: signal.explanation,
+    favoredSide: signal.favoredSide ?? signal.favored_side ?? 'incerto',
+  }
+}
+
+function mapBiasRow(row) {
+  return {
+    id: row.id,
+    newsId: row.news_id,
+    url: row.url,
+    title: row.title,
+    outlet: row.outlet,
+    sourceSlug: row.source_slug,
+    author: row.author,
+    publishedAt: row.published_at,
+    topic: row.topic,
+    topicSlug: row.topic_slug,
+    textLabel: row.text_label,
+    economicAxis: row.economic_axis,
+    socialAxis: row.social_axis,
+    overallScore: row.overall_score,
+    confidence: row.confidence,
+    outletEstimateLabel: row.outlet_estimate_label,
+    outletEstimateConfidence: row.outlet_estimate_confidence,
+    outletEstimateRationale: row.outlet_estimate_rationale,
+    distortionRisk: row.distortion_risk,
+    distortionSummary: row.distortion_summary,
+    favoredSide: row.favored_side,
+    summary: row.summary,
+    signals: (row.signals ?? []).map(mapBiasSignal),
+    evidence: row.evidence ?? [],
+    curated: row.curated_label
+      ? {
+          label: row.curated_label,
+          economicAxis: row.curated_economic_axis,
+          socialAxis: row.curated_social_axis,
+          confidence: row.curated_confidence,
+          methodology: row.curated_methodology,
+          referenceUrl: row.curated_reference_url,
+          reviewedAt: row.curated_reviewed_at,
+        }
+      : null,
+    methodologyVersion: row.methodology_version,
+    model: row.model,
+    createdAt: row.created_at,
+  }
+}
+
+export function fetchBiasSample() {
+  return BIAS_SAMPLE
+}
+
+export async function fetchBiasAnalysis(url = BIAS_SAMPLE.url) {
+  if (useMockData || !insforge) return BIAS_SAMPLE
+
+  const cached = ensure(
+    await insforge.database
+      .from('bias_feed')
+      .select('*')
+      .eq('url', url)
+      .eq('methodology_version', 'v1')
+      .maybeSingle(),
+  )
+  if (cached) return mapBiasRow(cached)
+
+  await fetchAnalysis(url)
+
+  const { data, error } = await insforge.functions.invoke('analyze-bias', { body: { url } })
+  if (error) throw new Error(error.message || 'Não foi possível analisar o enquadramento.')
+
+  const analysis = data?.analysis ?? data
+  if (!analysis?.textLabel)
+    throw new Error('A análise de enquadramento não retornou dados válidos.')
+  return analysis
 }

@@ -14,6 +14,7 @@ const open = ref(false)
 
 const links = [
   { to: '/analise', label: 'Análise' },
+  { to: '/vies', label: 'Enquadramento' },
   { to: '/comparacao', label: 'Comparação' },
   { to: '/blindspot', label: 'BlindSpot' },
   { to: '/replay', label: 'Replay' },

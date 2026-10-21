@@ -56,6 +56,7 @@ DNA, confiança, evidências, cluster e cartão viral
 | ------------- | ---------------------- | -------------------------------------------------- |
 | `/`           | Landing page           | Implementada; tendências e exemplo com dados reais |
 | `/analise`    | Análise de notícia     | Implementada; IA e banco reais                     |
+| `/vies`       | Radar de Enquadramento | Implementada; estimativa do texto e indícios       |
 | `/comparacao` | Comparação de veículos | Implementada; dados reais com fallback             |
 | `/blindspot`  | BlindSpot Brasil       | Implementada; dados reais com fallback             |
 | `/replay`     | Prisma Replay          | Implementada; dados reais com fallback             |
@@ -182,6 +183,31 @@ Vitrine conceitual da arquitetura:
 
 - Página “Este ângulo não existe.” com retorno para a home e para a análise.
 
+### 2.10 Radar de Enquadramento (`/vies`)
+
+- Campo para colar a URL de uma notícia já analisada.
+- Leitura da orientação do texto em duas escalas independentes:
+  - econômica: Estado/regulação × mercado/desregulação;
+  - social/cultural: progressista × conservador.
+- Bússola política com posição do texto, valores dos dois eixos e rótulo geral.
+- Rótulo “mista / ambígua” quando as escalas divergem mais de 50 pontos.
+- Confiança do texto limitada a 85 para evitar falsa precisão.
+- Card “Quem publicou” com duas camadas:
+  - estimativa baseada apenas nesta matéria;
+  - perfil curado, ainda não cadastrado para veículos reais.
+- Card de indícios de distorção com:
+  - risco retórico de 0 a 100;
+  - lado aparentemente beneficiado;
+  - sinais como manchete x corpo, contexto ausente, linguagem carregada, fonte anônima,
+    ausência de contraditório e conclusão unilateral;
+  - trecho literal e explicação para cada sinal.
+- Lista de evidências citadas do texto.
+- Bloco de metodologia e limites: não é checagem de fatos e não classifica o veículo de forma
+  permanente.
+- Atalhos para DNA completo, Comparação e BlindSpot.
+- Cache por matéria e versão da metodologia; o limite é 20 análises de viés por IP/hora e 100
+  globais/hora.
+
 ---
 
 ## 3. Recursos transversais
@@ -226,6 +252,8 @@ Vitrine conceitual da arquitetura:
 - Entrada no cluster mais próximo (`>= 0,78`) ou criação/reutilização de cluster do tema.
 - Cache por URL em `analysis_feed`.
 - Falha de embedding não impede o salvamento da análise.
+- O Radar de Enquadramento lê o texto já salvo, estima dois eixos e grava `bias_analyses`.
+- O resultado fica em `bias_feed` e é reutilizado por matéria + versão da metodologia.
 
 ### 4.3 DNA da Notícia
 
@@ -247,22 +275,26 @@ Jurídico.
 
 Projeto InsForge **Prismadanoticia**, PostgreSQL com pgvector.
 
-| Tabela / objeto       | Função                                                         |
-| --------------------- | -------------------------------------------------------------- |
-| `sources`             | Veículos, escopo e região                                      |
-| `topics`              | Temas, slug, acento, score de tendência e visibilidade         |
-| `clusters`            | Agrupamentos de matérias sobre o mesmo fato                    |
-| `news`                | Matérias, texto limpo, URL, fonte, tema, cluster e embedding   |
-| `analyses`            | DNA, confiança, diversidade, resumo, evidências e sinais       |
-| `analysis_feed`       | View pública que junta análise, notícia, fonte, tema e cluster |
-| `state_metrics`       | Indicadores por UF para o mapa                                 |
-| `replay_events`       | Quadros da evolução da narrativa                               |
-| `blindspot_reports`   | Relatórios de blindspot por tema                               |
-| `blindspot_coverage`  | Veículos que cobriram o tema                                   |
-| `blindspot_gaps`      | Veículos ausentes e severidade                                 |
-| `blindspot_subthemes` | Subtemas e percentual de cobertura                             |
-| `analysis_requests`   | Registros de rate limit por IP e URL                           |
-| `match_news(...)`     | RPC de busca por similaridade com pgvector                     |
+| Tabela / objeto        | Função                                                         |
+| ---------------------- | -------------------------------------------------------------- |
+| `sources`              | Veículos, escopo e região                                      |
+| `topics`               | Temas, slug, acento, score de tendência e visibilidade         |
+| `clusters`             | Agrupamentos de matérias sobre o mesmo fato                    |
+| `news`                 | Matérias, texto limpo, URL, fonte, tema, cluster e embedding   |
+| `analyses`             | DNA, confiança, diversidade, resumo, evidências e sinais       |
+| `analysis_feed`        | View pública que junta análise, notícia, fonte, tema e cluster |
+| `state_metrics`        | Indicadores por UF para o mapa                                 |
+| `replay_events`        | Quadros da evolução da narrativa                               |
+| `blindspot_reports`    | Relatórios de blindspot por tema                               |
+| `blindspot_coverage`   | Veículos que cobriram o tema                                   |
+| `blindspot_gaps`       | Veículos ausentes e severidade                                 |
+| `blindspot_subthemes`  | Subtemas e percentual de cobertura                             |
+| `analysis_requests`    | Registros de rate limit por IP e URL                           |
+| `bias_analyses`        | Eixos, confiança, veículo estimado e sinais de enquadramento   |
+| `source_bias_profiles` | Perfis curados de veículos (estrutura pronta, sem seed real)   |
+| `bias_feed`            | View pública com notícia, análise de viés e perfil curado      |
+| `bias_requests`        | Registros de rate limit do Radar de Enquadramento              |
+| `match_news(...)`      | RPC de busca por similaridade com pgvector                     |
 
 ### Leitura e escrita
 
@@ -277,8 +309,10 @@ Projeto InsForge **Prismadanoticia**, PostgreSQL com pgvector.
 
 - **RLS:** leitura pública somente nas tabelas expostas; escrita via service role.
 - **Segredos server-side:** `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`,
-  `OPENROUTER_EMBEDDING_MODEL` e `RATE_LIMIT_SALT` nunca usam prefixo `VITE_`.
-- **Rate limit:** 10 análises novas por IP/hora e 100 por hora no projeto.
+  `OPENROUTER_EMBEDDING_MODEL`, `OPENROUTER_BIAS_MODEL` e `RATE_LIMIT_SALT` nunca usam prefixo
+  `VITE_`.
+- **Rate limit:** 10 análises novas por IP/hora e 100 por hora no projeto; 20 análises de
+  enquadramento por IP/hora e 100 globais/hora.
 - **Cache:** URLs já analisadas não consomem cota e não chamam a IA novamente.
 - **IP:** armazenado apenas como hash SHA-256 com salt.
 - **Resposta 429:** inclui `Retry-After: 3600`.
@@ -318,6 +352,9 @@ npm run build
 - Cache de análises.
 - Embeddings e clusters semânticos.
 - Rate limit por IP e global.
+- Radar de Enquadramento com escalas econômica/social, estimativa do veículo e indícios de
+  distorção.
+- Perfis curados de veículos: estrutura criada, sem rótulos reais nesta versão.
 - PWA instalável.
 - Cartão compartilhável em PNG.
 - Tema claro/escuro.
@@ -330,7 +367,8 @@ npm run build
 - Favoritos e conta de usuário.
 - Leitura offline das análises já visitadas.
 - Backfill de embeddings para todas as matérias antigas.
-- Limpeza agendada de `analysis_requests`.
+- Cadastro de perfis curados de veículos com metodologia e referência pública.
+- Limpeza agendada de `analysis_requests` e `bias_requests`.
 - Monitoramento de custo do OpenRouter.
 - Domínio customizado.
 - API pública por UF.

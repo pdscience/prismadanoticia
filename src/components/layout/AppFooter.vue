@@ -8,6 +8,7 @@ const groups = [
     title: 'Produto',
     links: [
       { to: '/analise', label: 'Análise · DNA da Notícia' },
+      { to: '/vies', label: 'Radar de Enquadramento' },
       { to: '/comparacao', label: 'Comparação Inteligente' },
       { to: '/blindspot', label: 'BlindSpot Brasil' },
       { to: '/replay', label: 'Prisma Replay' },

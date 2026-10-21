@@ -43,13 +43,15 @@ src/
 │  ├─ landing/                # HeroPrism, HowItWorks, DnaShowcase, TrendsSection,
 │  │                          # FeatureGrid, MoatSection, BrandManifesto
 │  ├─ analysis/DnaRadar.vue   # Radar de 6 eixos — assinatura visual do Prisma
+│  ├─ bias/                   # Bússola política, perfil do veículo e indícios
 │  └─ intel/                  # PolarizationMap (cartograma), ShareCard (cartão viral)
 ├─ composables/               # useReveal (scroll reveal + contadores), useTheme
 ├─ data/                      # Frames canônicos, fixtures por domínio e barrel
 ├─ lib/                       # Cliente InsForge, radar, cores, análise e serviços
 ├─ router/index.js
-└─ views/                     # Home, Analysis, Compare, BlindSpot, Replay, Map, Tech, Brand, 404
+└─ views/                     # Home, Analysis, Bias, Compare, BlindSpot, Replay, Map, Tech, Brand, 404
 functions/analyze-url.ts      # Edge Function: extrai matéria, analisa com IA e grava no banco
+functions/analyze-bias.ts     # Edge Function: lê matéria salva e estima enquadramento
 migrations/                   # Schema, RLS, views, RPC e seed do InsForge
 tests/unit/                   # Testes Vitest de dados e helpers
 ```
@@ -60,6 +62,7 @@ tests/unit/                   # Testes Vitest de dados e helpers
 | ------------- | --------------------- | ---------------------------------------------------------------------------------------- |
 | `/`           | Cap. 1, 3, 14         | Landing premium: hero animado, como funciona, tendências, manifesto, cartão viral        |
 | `/analise`    | Cap. 4                | Tela de Análise: Resumo IA, Confiança, Diversidade de Fontes, Evidências, DNA da Notícia |
+| `/vies`       | Cap. 4                | Radar de Enquadramento: escalas econômica/social, veículo e indícios de distorção        |
 | `/comparacao` | Cap. 5                | Comparação Inteligente entre veículos + radar sobreposto                                 |
 | `/blindspot`  | Cap. 6                | BlindSpot Brasil, com seletor de período obrigatório                                     |
 | `/replay`     | Cap. 7                | Prisma Replay: player da evolução da narrativa                                           |
@@ -172,11 +175,30 @@ Depois da análise, a função gera um embedding de 1536 dimensões com
 `match_news` para entrar no cluster mais próximo (similaridade de cosseno `>= 0.78`) ou criar um
 cluster para o tema. Se o embedding falhar, a análise ainda é salva.
 
+### Edge Function `analyze-bias`
+
+A função recebe `{ "url": "https://..." }` de uma matéria que já passou por `analyze-url`. Ela
+lê o texto salvo, estima a orientação em duas escalas (econômica e social/cultural), separa a
+leitura do veículo e lista indícios retóricos de distorção. O resultado fica em `bias_feed` e é
+reutilizado nas próximas visitas.
+
+```bash
+npx -y @insforge/cli@latest functions deploy analyze-bias \
+  --file functions/analyze-bias.ts \
+  --name "Analyze Bias"
+```
+
+Modelo padrão: `openai/gpt-4o-mini`. Para trocar, defina `OPENROUTER_BIAS_MODEL`.
+
 ### Limites e deploy do frontend
 
 Cada IP pode disparar 10 análises novas por hora; o projeto também tem um teto global de 100 por
 hora. URLs já analisadas são servidas do cache e não consomem o limite. O hash do IP usa o segredo
 `RATE_LIMIT_SALT` e os registros ficam em `analysis_requests`.
+
+O Radar de Enquadramento tem limite próprio: 20 análises de viés por IP/hora e 100 globais/hora.
+Os registros ficam em `bias_requests`. Perfis curados de veículos ainda não são cadastrados nesta
+versão; a página mostra a estimativa da matéria e deixa a estrutura pronta para curadoria.
 
 ```bash
 npx -y @insforge/cli@latest deployments env set VITE_INSFORGE_URL https://9aqdv427.us-east.insforge.app
@@ -187,9 +209,9 @@ npx -y @insforge/cli@latest deployments deploy .
 
 ## Próximos passos
 
-1. Gerar embeddings das matérias e usar `match_news` para montar clusters reais.
-2. Enriquecer a análise com comparação entre veículos e séries temporais do Replay.
-3. Limpar periodicamente `analysis_requests` e monitorar consumo no OpenRouter.
+1. Enriquecer a análise com comparação entre veículos e séries temporais do Replay.
+2. Cadastrar perfis curados de veículos com metodologia e fontes públicas.
+3. Limpar periodicamente `analysis_requests` e `bias_requests` e monitorar consumo no OpenRouter.
 4. Publicar a extensão Chrome reutilizando `DnaRadar` e `PolarizationMap`.
 
 ---

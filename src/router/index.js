@@ -14,6 +14,12 @@ const routes = [
     meta: { title: 'Análise — DNA da Notícia | Prisma' },
   },
   {
+    path: '/vies',
+    name: 'bias',
+    component: () => import('@/views/BiasView.vue'),
+    meta: { title: 'Radar de Enquadramento | Prisma' },
+  },
+  {
     path: '/comparacao',
     name: 'compare',
     component: () => import('@/views/CompareView.vue'),

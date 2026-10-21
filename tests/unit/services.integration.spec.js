@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   fetchAnalysis,
+  fetchBiasAnalysis,
   fetchBlindspot,
   fetchComparison,
   fetchReplay,
@@ -39,6 +40,15 @@ describe.skipIf(!live)('serviços InsForge ao vivo', () => {
     )
     expect(analysis.outlet).toBe('Senado Federal')
     expect(analysis.dna.emocao).toBeGreaterThan(0)
+  })
+
+  it('carrega o enquadramento de exemplo', async () => {
+    const bias = await fetchBiasAnalysis(
+      'https://exemplo.com.br/politica/reforma-tributaria-relatorio',
+    )
+    expect(bias.textLabel).toBe('centro')
+    expect(bias.signals.length).toBeGreaterThan(0)
+    expect(bias.curated).toBeNull()
   })
 
   it('carrega comparação', async () => {
