@@ -5,6 +5,8 @@ import {
   fetchBiasAnalysis,
   fetchBlindspot,
   fetchComparison,
+  fetchCoverage,
+  fetchPerspectives,
   fetchReplay,
   fetchSampleAnalysis,
   fetchStates,
@@ -56,6 +58,29 @@ describe.skipIf(!live)('serviços InsForge ao vivo', () => {
     expect(comparison.rows.length).toBeGreaterThan(0)
     expect(comparison.rows[0]).toHaveProperty('dna')
   })
+
+  it('carrega perspectivas do cluster de uma matéria', async () => {
+    const analysis = await fetchAnalysis(
+      'https://www.cnnbrasil.com.br/internacional/trump-diz-que-america-do-sul-esta-se-tornando-cada-vez-mais-conservadora/',
+    )
+    const perspectives = await fetchPerspectives(analysis.clusterId)
+
+    expect(analysis.clusterId).toBeTruthy()
+    expect(perspectives.sides).toHaveLength(3)
+    expect(perspectives.total).toBeGreaterThan(0)
+    expect(perspectives.represented.length).toBeGreaterThan(0)
+  })
+
+  it('carrega a cobertura de um cluster real', async () => {
+    const coverage = await fetchCoverage({
+      url: 'https://www.cnnbrasil.com.br/internacional/trump-diz-que-america-do-sul-esta-se-tornando-cada-vez-mais-conservadora/',
+    })
+
+    expect(coverage.totalClassified).toBeGreaterThan(0)
+    expect(
+      coverage.percentages.esquerda + coverage.percentages.centro + coverage.percentages.direita,
+    ).toBe(100)
+  }, 15000)
 
   it('carrega blindspot', async () => {
     const blindspot = await fetchBlindspot()

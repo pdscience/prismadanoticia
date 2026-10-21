@@ -33,6 +33,8 @@ Key patterns:
 - New analyses generate a 1536-dim embedding, join the nearest cluster (`>= 0.78` cosine similarity) or create one for the topic. Embedding failures do not block saving the analysis.
 - `analyze-url` limits 10 new analyses per IP/hour and 100 globally; `analyze-bias` limits 20 per IP/hour and 100 globally. Cached URLs bypass both limits.
 - Public framing reads use `bias_feed`. `source_bias_profiles` is intentionally empty; do not assign permanent labels to real outlets without methodology and a public reference.
+- `/analise` also reads `perspective_feed` for "Perspectivas nesta história": one row per outlet per cluster, grouped by the text-level `text_label`. Empty coverage is shown as empty, never invented.
+- `/cobertura` reuses `analysis_feed` + `perspective_feed`; the bar uses text labels, while `source_bias_profiles` supplies optional curated outlet ratings. It never calls `analyze-url`, never uses fixtures, and never invents ratings.
 - Schema and seed live in `migrations/`; apply with `npx -y @insforge/cli@latest db migrations up --all`.
 - Deploy the frontend with `npx -y @insforge/cli@latest deployments deploy .` after setting the `VITE_*` env vars in `deployments env set`.
 - Run `npm run lint`, `npm run format:check`, `npm run test:run`, and `npm run build` before committing.

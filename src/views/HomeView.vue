@@ -84,14 +84,14 @@ onMounted(async () => {
             class="pointer-events-none absolute inset-0 bg-linear-to-br from-electric/12 via-prism/12 to-insight/10"
           />
           <div class="relative">
-            <h2 class="mx-auto max-w-2xl text-3xl leading-tight sm:text-4xl">
+            <h2 class="mx-auto max-w-2xl text-3xl leading-tight sm:text-3xl">
               Uma notícia. <span class="text-gradient">Vários ângulos.</span>
             </h2>
             <p class="mx-auto mt-4 max-w-xl text-base text-ink-muted">
               Cole um link e veja o que você não estava vendo.
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-3">
-              <PButton to="/analise" size="lg">Analisar uma notícia</PButton>
+              <PButton to="/analise" size="lg">Analisar notícia agora</PButton>
               <PButton to="/tecnologia" variant="outline" size="lg">Como o Engine funciona</PButton>
             </div>
           </div>

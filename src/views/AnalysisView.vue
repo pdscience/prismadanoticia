@@ -7,6 +7,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import DnaRadar from '@/components/analysis/DnaRadar.vue'
+import AnalysisLegend from '@/components/analysis/AnalysisLegend.vue'
+import StoryPerspectives from '@/components/analysis/StoryPerspectives.vue'
 import ShareCard from '@/components/intel/ShareCard.vue'
 import MeterBar from '@/components/ui/MeterBar.vue'
 import PBadge from '@/components/ui/PBadge.vue'
@@ -14,14 +16,16 @@ import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
 import ScoreRing from '@/components/ui/ScoreRing.vue'
 import { DNA_AXES, ENGINE_PIPELINE, SAMPLE_ANALYSIS, frame } from '@/data'
+import { buildPerspectives } from '@/lib/perspectives'
 import { dnaAverage } from '@/lib/radar'
-import { fetchAnalysis, fetchSampleAnalysis } from '@/lib/services'
+import { fetchAnalysis, fetchPerspectives, fetchSampleAnalysis } from '@/lib/services'
 
 const route = useRoute()
 const router = useRouter()
 
 const input = ref(String(route.query.url || ''))
 const analysis = ref(SAMPLE_ANALYSIS)
+const perspectives = ref(buildPerspectives([]))
 const loading = ref(false)
 const activeStep = ref(-1)
 const error = ref('')
@@ -50,6 +54,10 @@ const publishedLabel = computed(() =>
   }),
 )
 
+async function loadPerspectives(clusterId) {
+  perspectives.value = await fetchPerspectives(clusterId)
+}
+
 /** Roda o pipeline simulado do Prisma Engine, passo a passo. */
 async function runAnalysis(url) {
   if (!url) return
@@ -64,6 +72,7 @@ async function runAnalysis(url) {
     }
 
     analysis.value = await fetchAnalysis(url)
+    await loadPerspectives(analysis.value.clusterId)
     activeStep.value = ENGINE_PIPELINE.length
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : 'Não foi possível analisar esta URL.'
@@ -82,6 +91,7 @@ function submit() {
 async function useSample() {
   input.value = ''
   analysis.value = await fetchSampleAnalysis()
+  await loadPerspectives(analysis.value.clusterId)
   activeStep.value = -1
   router.replace({ name: 'analysis' })
 }
@@ -101,6 +111,7 @@ onMounted(async () => {
     await runAnalysis(input.value)
   } else {
     analysis.value = await fetchSampleAnalysis()
+    await loadPerspectives(analysis.value.clusterId)
   }
 })
 </script>
@@ -143,6 +154,8 @@ onMounted(async () => {
           {{ error }}
         </div>
       </header>
+
+      <AnalysisLegend />
 
       <!-- pipeline em execução -->
       <Transition name="route-fade">
@@ -223,6 +236,8 @@ onMounted(async () => {
             </div>
           </div>
         </PCard>
+
+        <StoryPerspectives :perspectives="perspectives" />
 
         <!-- cartões principais -->
         <div class="grid gap-5 lg:grid-cols-3">

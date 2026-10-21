@@ -17,6 +17,7 @@ const FRAMES = {
 }
 
 const DNA_KEYS = ['emocao', 'fontes', 'evidencias', 'persuasao', 'equilibrio', 'narrativa']
+const ARTICLE_TYPES = new Set(['Article', 'NewsArticle', 'ReportageNewsArticle', 'BlogPosting'])
 const MAX_ARTICLE_CHARS = 14000
 const MAX_PAGE_BYTES = 2_000_000
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
@@ -181,15 +182,63 @@ function stripHtml(value) {
 
 function meta(html, key) {
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const attribute = `(?:property|name|itemprop)=["']${escaped}["']`
+  const content = `content=(?:"([^"]*)"|'([^']*)')`
   const patterns = [
-    new RegExp(`<meta[^>]+(?:property|name)=["']${escaped}["'][^>]*content=["']([^"']*)["']`, 'i'),
-    new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+(?:property|name)=["']${escaped}["']`, 'i'),
+    new RegExp(`<meta[^>]+${attribute}[^>]*${content}`, 'i'),
+    new RegExp(`<meta[^>]+${content}[^>]+${attribute}`, 'i'),
   ]
   for (const pattern of patterns) {
     const match = html.match(pattern)
-    if (match?.[1]) return decodeEntities(match[1])
+    const value = match?.[1] ?? match?.[2]
+    if (value) return decodeEntities(value)
   }
   return ''
+}
+
+function textValue(value) {
+  if (typeof value === 'string' || typeof value === 'number') return String(value)
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const text = textValue(item)
+      if (text) return text
+    }
+    return ''
+  }
+  if (value && typeof value === 'object') return textValue(value.name)
+  return ''
+}
+
+function jsonLdNodes(value, nodes = []) {
+  if (Array.isArray(value)) {
+    for (const item of value) jsonLdNodes(item, nodes)
+    return nodes
+  }
+  if (!value || typeof value !== 'object') return nodes
+  nodes.push(value)
+  if (value['@graph']) jsonLdNodes(value['@graph'], nodes)
+  return nodes
+}
+
+function findJsonLdArticle(html) {
+  const pattern = /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  let best = null
+  for (const match of String(html).matchAll(pattern)) {
+    let parsed
+    try {
+      parsed = JSON.parse(match[1].trim())
+    } catch {
+      continue
+    }
+    for (const node of jsonLdNodes(parsed)) {
+      const types = Array.isArray(node['@type']) ? node['@type'] : [node['@type']]
+      if (!types.some((type) => ARTICLE_TYPES.has(type))) continue
+      const body = stripHtml(node.articleBody)
+      if (!body) continue
+      if (!best || body.length > best.body.length) best = { ...node, body }
+    }
+  }
+  return best
 }
 
 function firstTag(html, tag) {
@@ -203,24 +252,34 @@ function normalizeDate(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString()
 }
 
-function extractArticle(html, url) {
+export function extractArticle(html, url) {
+  const structured = findJsonLdArticle(html)
   const title =
     meta(html, 'og:title') ||
     meta(html, 'twitter:title') ||
+    textValue(structured?.headline) ||
     firstTag(html, 'title') ||
     firstTag(html, 'h1') ||
     'Sem título'
   const outlet =
     meta(html, 'og:site_name') ||
     meta(html, 'application-name') ||
+    textValue(structured?.publisher?.name) ||
     new URL(url).hostname.replace(/^www\./, '')
   const author =
-    meta(html, 'author') || meta(html, 'article:author') || meta(html, 'twitter:creator')
+    meta(html, 'author') ||
+    meta(html, 'article:author') ||
+    meta(html, 'twitter:creator') ||
+    textValue(structured?.author)
   const publishedAt =
     normalizeDate(meta(html, 'article:published_time')) ||
     normalizeDate(meta(html, 'datePublished')) ||
-    normalizeDate(meta(html, 'pubdate'))
-  const description = meta(html, 'og:description') || meta(html, 'description')
+    normalizeDate(meta(html, 'pubdate')) ||
+    normalizeDate(structured?.datePublished)
+  const description =
+    meta(html, 'og:description') ||
+    meta(html, 'description') ||
+    stripHtml(textValue(structured?.description))
 
   const cleaned = String(html)
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
@@ -231,7 +290,7 @@ function extractArticle(html, url) {
     .filter((text) => text.length >= 40)
 
   let text = paragraphs.join('\n\n')
-  if (text.length < 300) text = stripHtml(cleaned)
+  if (text.length < 300) text = structured?.body || stripHtml(cleaned)
   text = text.replace(/\s+/g, ' ').trim().slice(0, MAX_ARTICLE_CHARS)
 
   const words = text.split(/\s+/).filter(Boolean).length

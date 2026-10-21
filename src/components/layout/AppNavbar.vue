@@ -16,6 +16,7 @@ const links = [
   { to: '/analise', label: 'Análise' },
   { to: '/vies', label: 'Enquadramento' },
   { to: '/comparacao', label: 'Comparação' },
+  { to: '/cobertura', label: 'Cobertura' },
   { to: '/blindspot', label: 'BlindSpot' },
   { to: '/replay', label: 'Replay' },
   { to: '/mapa', label: 'Mapa' },
@@ -49,7 +50,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
           <BrandLogo variant="horizontal" :size="34" animated />
         </RouterLink>
 
-        <ul class="hidden items-center gap-1 lg:flex">
+        <ul class="hidden items-center gap-1 xl:flex">
           <li v-for="link in links" :key="link.to">
             <RouterLink
               :to="link.to"
@@ -103,13 +104,13 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
             </svg>
           </button>
 
-          <PButton to="/analise" size="sm" class="hidden sm:inline-flex">
-            Analisar uma notícia
+          <PButton to="/analise" size="md" class="hidden sm:inline-flex">
+            <span class="whitespace-nowrap text-xs">Analisar uma notícia</span>
           </PButton>
 
           <button
             type="button"
-            class="grid h-9 w-9 place-items-center rounded-full border border-hairline text-ink lg:hidden"
+            class="grid h-9 w-9 place-items-center rounded-full border border-hairline text-ink xl:hidden"
             aria-label="Abrir menu"
             @click="open = !open"
           >
@@ -131,7 +132,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 
       <!-- menu mobile -->
       <Transition name="route-fade">
-        <div v-if="open" class="mt-2 overflow-hidden rounded-3xl glass p-3 lg:hidden">
+        <div v-if="open" class="mt-2 overflow-hidden rounded-3xl glass p-3 xl:hidden">
           <RouterLink
             v-for="link in links"
             :key="link.to"

@@ -6,21 +6,22 @@ produto por capacidade, e [`README.md`](./README.md), que cobre setup e deploy.
 
 ## Resumo
 
-| Rota          | Pergunta que a tela responde                               | Dados                                         |
-| ------------- | ---------------------------------------------------------- | --------------------------------------------- |
-| `/`           | O que é o Prisma e por que ele importa?                    | Tendências e análise de exemplo no InsForge   |
-| `/analise`    | Qual é o DNA desta notícia?                                | `analysis_feed` + Edge Function `analyze-url` |
-| `/vies`       | Qual é o enquadramento do texto e quais indícios ele traz? | `bias_feed` + Edge Function `analyze-bias`    |
-| `/comparacao` | Como veículos diferentes trataram o mesmo cluster?         | `analysis_feed` por `topic_slug`              |
-| `/blindspot`  | Quem está em silêncio sobre este tema?                     | Tabelas `blindspot_*`                         |
-| `/replay`     | Como a narrativa mudou ao longo do tempo?                  | `replay_events`                               |
-| `/mapa`       | Quais temas dominam e polarizam cada UF?                   | `state_metrics`                               |
-| `/tecnologia` | Como o produto é construído e para onde vai?               | Conteúdo conceitual                           |
-| `/marca`      | Qual é a identidade visual e narrativa da marca?           | Conteúdo conceitual                           |
-| `*`           | O ângulo existe?                                           | Nenhum dado externo                           |
+| Rota          | Pergunta que a tela responde                                | Dados                                                |
+| ------------- | ----------------------------------------------------------- | ---------------------------------------------------- |
+| `/`           | O que é o Prisma e por que ele importa?                     | Tendências e análise de exemplo no InsForge          |
+| `/analise`    | Qual é o DNA desta notícia?                                 | `analysis_feed` + `perspective_feed` + `analyze-url` |
+| `/vies`       | Qual é o enquadramento do texto e quais indícios ele traz?  | `bias_feed` + Edge Function `analyze-bias`           |
+| `/comparacao` | Como veículos diferentes trataram o mesmo cluster?          | `analysis_feed` por `topic_slug`                     |
+| `/cobertura`  | Como os veículos cobriram esta história e qual lado faltou? | `analysis_feed` + `perspective_feed` + perfis        |
+| `/blindspot`  | Quem está em silêncio sobre este tema?                      | Tabelas `blindspot_*`                                |
+| `/replay`     | Como a narrativa mudou ao longo do tempo?                   | `replay_events`                                      |
+| `/mapa`       | Quais temas dominam e polarizam cada UF?                    | `state_metrics`                                      |
+| `/tecnologia` | Como o produto é construído e para onde vai?                | Conteúdo conceitual                                  |
+| `/marca`      | Qual é a identidade visual e narrativa da marca?            | Conteúdo conceitual                                  |
+| `*`           | O ângulo existe?                                            | Nenhum dado externo                                  |
 
-O menu principal expõe Análise, Enquadramento, Comparação, BlindSpot, Replay, Mapa e Tecnologia. O
-rodapé também aponta para o Brand Book e para âncoras internas de Tecnologia e Marca.
+O menu principal expõe Análise, Enquadramento, Comparação, Cobertura, BlindSpot, Replay, Mapa e
+Tecnologia. O rodapé também aponta para o Brand Book e para âncoras internas de Tecnologia e Marca.
 
 ---
 
@@ -49,7 +50,8 @@ manifesto da marca e a estratégia de cartão viral.
 ## `/analise` — DNA da Notícia
 
 **Explora:** a análise individual de uma matéria: resumo em tópicos, confiança, diversidade de
-fontes, seis eixos do DNA, evidências, sinais editoriais, cluster e cartão compartilhável.
+fontes, seis eixos do DNA, evidências, sinais editoriais, cluster, perspectivas do cluster e cartão
+compartilhável.
 
 **Fluxo:**
 
@@ -68,6 +70,14 @@ fontes, seis eixos do DNA, evidências, sinais editoriais, cluster e cartão com
 - O Índice Prisma é a média dos seis eixos e não um veredito de qualidade jornalística.
 - O cluster pode ter tamanho `1` quando a matéria ainda não encontrou vizinhos com similaridade
   suficiente.
+- **Perspectivas nesta história** lê `perspective_feed` por `cluster_id` e agrupa as matérias
+  analisadas em esquerda, centro, direita e incerta. Cada veículo aparece uma vez, pela matéria mais
+  recente. O painel mostra quantos lados estão representados, quais faltam e uma amostra pequena
+  quando há menos de três veículos.
+- O agrupamento usa o `text_label` estimado de cada texto; ele não é um rating permanente do
+  veículo e não transforma ausência em prova de omissão editorial.
+- A legenda expansível **Como ler esta análise** explica as faixas, os seis eixos, as evidências,
+  as perspectivas e os sinais; ela deixa explícito que as métricas não são checagem de fatos.
 
 ---
 
@@ -106,13 +116,47 @@ indícios retóricos de distorção.
 **Dados e comportamento:**
 
 - Busca por tema, normaliza para `slug` e lê `analysis_feed` por `topic_slug`.
-- Só entram linhas com `highlight` preenchido.
+- Só entram linhas com `highlight` preenchido; URLs de `exemplo.com.br` são descartadas.
+- Mantém uma linha por veículo, priorizando a matéria mais recente e, em empate, a de maior
+  confiança.
+- A contagem exibida é de veículos comparados; a janela é calculada a partir das datas reais das
+  publicações.
 - Se não houver cluster suficiente, usa `COMPARISON` e exibe o selo **dados de demonstração**.
 - Quando o termo buscado não corresponde ao exemplo, a tela avisa qual tema está sendo mostrado.
 - A leitura editorial é descritiva; não é um ranking de qualidade.
 
 **Limite:** a busca recupera clusters já gravados. Ela não dispara uma nova coleta de veículos no
 momento da consulta.
+
+---
+
+## `/cobertura` — Cobertura da História
+
+**Explora:** como veículos diferentes cobriram o mesmo cluster, com distribuição percentual entre
+esquerda, centro e direita, lista de manchetes, lados ausentes e alerta de ponto cego.
+
+**Entrada:**
+
+- `?url=...` de uma matéria já analisada;
+- `?cluster=...` vindo do card de perspectivas ou de links internos;
+- formulário para colar a URL de uma matéria já analisada.
+
+**Dados e cálculo:**
+
+- Lê `analysis_feed` para a manchete representativa e o `cluster_id`.
+- Lê `perspective_feed` para as coberturas do cluster.
+- Lê `source_bias_profiles` para o rating curado do veículo, quando existir.
+- Um veículo aparece uma vez, pela matéria mais recente; empate vai para a maior confiança.
+- A barra usa o enquadramento do **texto**. Incertas ficam fora do denominador e são listadas à
+  parte. As porcentagens somam 100%.
+- Um lado com até 10% e pelo menos 3 veículos classificados gera alerta de ponto cego. Com menos de
+  5 veículos, o texto relativiza a amostra.
+- O rating curado aparece como contexto ao lado da manchete. Sem perfil, a tela mostra **sem rating
+  curado**; a estimativa de IA não é promovida a rating permanente.
+
+**Limites:** a página não analisa URLs novas automaticamente, não usa fallback fictício e não
+inventa ratings. A metodologia de curadoria está em
+[`docs/metodologia-cobertura.md`](./docs/metodologia-cobertura.md).
 
 ---
 
@@ -202,6 +246,10 @@ pitch deck.
 - **Fallback:** quando o backend está configurado mas falha, as telas de leitura usam fixtures para
   preservar a navegação. Comparação, BlindSpot e Replay sinalizam isso; a análise de URL nova e o
   Radar de Enquadramento não fabricam resultado em produção.
+- **Perspectivas:** em modo mock ou falha de consulta, o painel fica vazio e explica que ainda não
+  há coberturas comparáveis; nenhum lado é inventado.
+- **Cobertura:** a página não dispara análise nova e não usa fixture. URL não analisada leva para
+  `/analise`; cluster sem cobertura mostra estado vazio.
 - **Demonstração x produção:** o rodapé indica o modo configurado (“dados de demonstração” ou
   “dados do InsForge”). Um fallback pontual pode ocorrer mesmo com o InsForge configurado.
 - **Cores de enquadramento:** vêm de `src/data/frames.js`; mapa, replay e hero compartilham a mesma

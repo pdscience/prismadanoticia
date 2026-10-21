@@ -15,10 +15,11 @@ const { root } = useReveal()
 
 const comparison = ref(COMPARISON)
 const query = ref(COMPARISON.topic)
-const selected = ref(COMPARISON.rows[0].outlet)
+const rowKey = (row) => row?.id ?? row?.outlet
+const selected = ref(rowKey(COMPARISON.rows[0]))
 
 const rows = computed(() => comparison.value.rows)
-const current = computed(() => rows.value.find((r) => r.outlet === selected.value))
+const current = computed(() => rows.value.find((r) => rowKey(r) === selected.value))
 
 /** Média do cluster por eixo — a "cobertura média" do fato. */
 const clusterAverage = computed(() => {
@@ -46,12 +47,12 @@ const divergences = computed(() => {
 async function search() {
   const term = query.value.trim() || COMPARISON.topic
   comparison.value = await fetchComparison(term)
-  selected.value = comparison.value.rows[0]?.outlet ?? ''
+  selected.value = rowKey(comparison.value.rows[0]) ?? ''
 }
 
 onMounted(async () => {
   comparison.value = await fetchComparison()
-  selected.value = comparison.value.rows[0]?.outlet ?? ''
+  selected.value = rowKey(comparison.value.rows[0]) ?? ''
 })
 </script>
 
@@ -85,7 +86,9 @@ onMounted(async () => {
       <div class="mt-12 flex flex-wrap items-center justify-center gap-3">
         <PBadge color="#8B5CF6">{{ comparison.topic }}</PBadge>
         <PBadge color="#6F9BFF">{{ comparison.window }}</PBadge>
-        <PBadge color="#FFC24B">{{ comparison.clusterSize }} matérias no cluster</PBadge>
+        <PBadge color="#FFC24B"
+          >{{ comparison.outletCount ?? rows.length }} veículos comparados</PBadge
+        >
         <PBadge v-if="comparison.demo" color="#FFC24B">dados de demonstração</PBadge>
       </div>
 
@@ -120,10 +123,10 @@ onMounted(async () => {
             <tbody>
               <tr
                 v-for="row in rows"
-                :key="row.outlet"
+                :key="rowKey(row)"
                 class="cursor-pointer border-b border-hairline/60 transition-colors last:border-0"
-                :class="selected === row.outlet ? 'bg-electric/8' : 'hover:bg-surface'"
-                @click="selected = row.outlet"
+                :class="selected === rowKey(row) ? 'bg-electric/8' : 'hover:bg-surface'"
+                @click="selected = rowKey(row)"
               >
                 <td class="px-6 py-5">
                   <span class="flex items-center gap-3">
@@ -158,16 +161,16 @@ onMounted(async () => {
             <div class="flex gap-1.5">
               <button
                 v-for="row in rows"
-                :key="row.outlet"
+                :key="rowKey(row)"
                 type="button"
                 class="rounded-full border px-3 py-1 text-xs transition-colors"
                 :class="
-                  selected === row.outlet
+                  selected === rowKey(row)
                     ? 'border-transparent text-white'
                     : 'border-hairline text-ink-muted hover:text-ink'
                 "
-                :style="selected === row.outlet ? { background: row.accent } : {}"
-                @click="selected = row.outlet"
+                :style="selected === rowKey(row) ? { background: row.accent } : {}"
+                @click="selected = rowKey(row)"
               >
                 {{ row.outlet }}
               </button>
@@ -234,7 +237,8 @@ onMounted(async () => {
         Exemplo de referência: “{{ SAMPLE_ANALYSIS.title }}”
       </p>
       <p v-else class="mt-8 text-center text-xs text-ink-muted">
-        Cluster “{{ comparison.topic }}” · {{ comparison.clusterSize }} matérias analisadas.
+        Cluster “{{ comparison.topic }}” · {{ comparison.outletCount ?? rows.length }} veículos
+        comparados.
       </p>
     </div>
   </div>

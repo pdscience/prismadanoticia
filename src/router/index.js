@@ -26,6 +26,12 @@ const routes = [
     meta: { title: 'Comparação Inteligente | Prisma' },
   },
   {
+    path: '/cobertura',
+    name: 'coverage',
+    component: () => import('@/views/CoverageView.vue'),
+    meta: { title: 'Cobertura da História | Prisma' },
+  },
+  {
     path: '/blindspot',
     name: 'blindspot',
     component: () => import('@/views/BlindSpotView.vue'),

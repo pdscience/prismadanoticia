@@ -1,6 +1,9 @@
 import { BIAS_SAMPLE, BLINDSPOT, COMPARISON, REPLAY, SAMPLE_ANALYSIS, STATES, TRENDS } from '@/data'
 import { analyzeUrl } from '@/lib/analysis'
+import { buildComparison } from '@/lib/comparison'
+import { buildCoverage } from '@/lib/coverage'
 import { insforge, useMockData } from '@/lib/insforge'
+import { buildPerspectives } from '@/lib/perspectives'
 
 const DEFAULT_TOPIC = 'reforma-tributaria'
 
@@ -115,30 +118,88 @@ export function fetchComparison(topic = COMPARISON.topic) {
       const rows = ensure(
         await insforge.database
           .from('analysis_feed')
-          .select('outlet,highlight,angle,tone,dna,accent,topic,topic_slug,cluster_size')
+          .select(
+            'id,outlet,highlight,angle,tone,dna,accent,topic,topic_slug,url,published_at,confidence',
+          )
           .eq('topic_slug', slug)
           .limit(20),
       )
-      const compared = rows.filter((row) => row.highlight)
-      if (!compared.length) throw new Error('Sem comparação para este tema')
-      return {
-        topic: rows[0].topic,
-        requestedTopic: topic,
-        window: COMPARISON.window,
-        clusterSize: rows[0].cluster_size ?? rows.length,
-        demo: false,
-        rows: compared.map((row) => ({
-          outlet: row.outlet,
-          highlight: row.highlight,
-          angle: row.angle,
-          tone: row.tone,
-          dna: row.dna,
-          accent: row.accent,
-        })),
-      }
+      const comparison = buildComparison(rows, topic)
+      if (!comparison.rows.length) throw new Error('Sem comparação para este tema')
+      return comparison
     },
-    () => ({ ...COMPARISON, requestedTopic: topic, demo: true }),
+    () => ({
+      ...COMPARISON,
+      requestedTopic: topic,
+      outletCount: COMPARISON.rows.length,
+      demo: true,
+    }),
   )
+}
+
+export function fetchPerspectives(clusterId) {
+  if (!clusterId) return buildPerspectives([], { clusterId: null })
+  if (useMockData || !insforge) return buildPerspectives([], { clusterId })
+
+  return withFallback(
+    async () => {
+      const rows = ensure(
+        await insforge.database
+          .from('perspective_feed')
+          .select(
+            'news_id,cluster_id,outlet,title,url,published_at,text_label,confidence,overall_score',
+          )
+          .eq('cluster_id', clusterId)
+          .limit(40),
+      )
+      return buildPerspectives(rows, { clusterId })
+    },
+    () => buildPerspectives([], { clusterId }),
+  )
+}
+
+export async function fetchCoverage({ url, clusterId } = {}) {
+  if (useMockData || !insforge) return buildCoverage([], null)
+
+  let story = null
+
+  if (url) {
+    const rows = ensure(
+      await insforge.database
+        .from('analysis_feed')
+        .select('title,outlet,url,published_at,topic,topic_slug,cluster_id,cluster_size,confidence')
+        .eq('url', url)
+        .limit(1),
+    )
+    story = rows?.[0] ?? null
+    if (!story) {
+      throw new Error('Esta matéria ainda não foi analisada. Abra a Análise para processá-la.')
+    }
+  } else if (clusterId) {
+    const rows = ensure(
+      await insforge.database
+        .from('analysis_feed')
+        .select('title,outlet,url,published_at,topic,topic_slug,cluster_id,cluster_size,confidence')
+        .eq('cluster_id', clusterId)
+        .order('published_at', { ascending: false })
+        .limit(1),
+    )
+    story = rows?.[0] ?? null
+  }
+
+  if (!story?.cluster_id) return buildCoverage([], null)
+
+  const rows = ensure(
+    await insforge.database
+      .from('perspective_feed')
+      .select(
+        'news_id,cluster_id,outlet,title,url,published_at,text_label,confidence,curated_label,curated_confidence,outlet_estimate_label,outlet_estimate_confidence',
+      )
+      .eq('cluster_id', story.cluster_id)
+      .limit(100),
+  )
+
+  return buildCoverage(rows, story)
 }
 
 export function fetchBlindspot(topic = BLINDSPOT.topic) {

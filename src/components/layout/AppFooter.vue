@@ -11,6 +11,7 @@ const groups = [
       { to: '/analise', label: 'Análise · DNA da Notícia' },
       { to: '/vies', label: 'Radar de Enquadramento' },
       { to: '/comparacao', label: 'Comparação Inteligente' },
+      { to: '/cobertura', label: 'Cobertura da História' },
       { to: '/blindspot', label: 'BlindSpot Brasil' },
       { to: '/replay', label: 'Prisma Replay' },
     ],

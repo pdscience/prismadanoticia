@@ -24,11 +24,12 @@ cola o link de uma notícia e recebe:
 - evidências classificadas por força;
 - sinais de alerta editorial;
 - cluster semântico com matérias do mesmo fato;
+- perspectivas por lado do enquadramento dentro do cluster;
 - cartão compartilhável em PNG.
 
-O sistema também oferece telas de comparação entre veículos, detecção de blindspots, replay da
-narrativa, mapa de polarização por estado e uma apresentação institucional da marca e da
-tecnologia.
+O sistema também oferece telas de comparação entre veículos, cobertura por distribuição de
+enquadramento, detecção de blindspots, replay da narrativa, mapa de polarização por estado e uma
+apresentação institucional da marca e da tecnologia.
 
 ### Fluxo principal
 
@@ -61,6 +62,7 @@ DNA, confiança, evidências, cluster e cartão viral
 | `/analise`    | Análise de notícia     | Implementada; IA e banco reais                     |
 | `/vies`       | Radar de Enquadramento | Implementada; estimativa do texto e indícios       |
 | `/comparacao` | Comparação de veículos | Implementada; dados reais com fallback             |
+| `/cobertura`  | Cobertura da História  | Implementada; distribuição e blindspot             |
 | `/blindspot`  | BlindSpot Brasil       | Implementada; dados reais com fallback             |
 | `/replay`     | Prisma Replay          | Implementada; dados reais com fallback             |
 | `/mapa`       | Mapa de Polarização    | Implementada; dados reais com fallback             |
@@ -85,11 +87,15 @@ DNA, confiança, evidências, cluster e cartão viral
 - Botão **Ver exemplo** para carregar a análise de referência.
 - Pipeline visual de seis etapas durante o carregamento.
 - Tratamento de erro com mensagem retornada pela Edge Function.
+- Legenda expansível **Como ler esta análise**, abaixo do cabeçalho, com o significado do Índice
+  Prisma, do cluster, da confiança, da diversidade de fontes, dos seis eixos, das evidências, das
+  perspectivas e dos sinais.
 - Resultado com:
   - título, veículo, autor, data, tempo de leitura e tema;
   - enquadramento dominante;
   - **Índice Prisma** (média dos seis eixos);
   - tamanho do cluster;
+  - **Perspectivas nesta história**, com esquerda, centro, direita, lado ausente e amostra pequena;
   - resumo em três pontos;
   - anel de confiança com classificação textual;
   - diversidade de fontes;
@@ -100,8 +106,9 @@ DNA, confiança, evidências, cluster e cartão viral
   - atalhos para Comparação, BlindSpot e Replay;
   - cartão viral com download em PNG 1080×1080 e cópia do texto.
 
-**Fonte dos dados:** `analysis_feed` para URLs já analisadas. URLs novas são enviadas para a Edge
-Function `analyze-url`. Uma falha real não é substituída por resultado fictício.
+**Fonte dos dados:** `analysis_feed` para URLs já analisadas, `perspective_feed` para as
+perspectivas do cluster e a Edge Function `analyze-url` para URLs novas. Uma falha real não é
+substituída por resultado fictício; o painel de perspectivas fica vazio em vez de inventar lados.
 
 ### 2.3 Comparação Inteligente (`/comparacao`)
 
@@ -113,9 +120,11 @@ Function `analyze-url`. Uma falha real não é substituída por resultado fictí
 - Leitura editorial resumida.
 - Atalhos para BlindSpot e Replay.
 
-**Fonte dos dados:** `analysis_feed` filtrado por `topic_slug`. Se o tema não tiver dados
-suficientes, a tela usa a fixture local, sinaliza “dados de demonstração” e informa qual tema de
-exemplo está sendo exibido.
+**Fonte dos dados:** `analysis_feed` filtrado por `topic_slug`. A tela descarta as fixtures de
+`exemplo.com.br`, mantém uma matéria por veículo (a mais recente; em empate, a de maior confiança) e
+calcula a contagem de veículos e a janela a partir das datas reais. Se o tema não tiver dados
+suficientes, usa a fixture local, sinaliza “dados de demonstração” e informa qual tema de exemplo
+está sendo exibido.
 
 ### 2.4 BlindSpot Brasil (`/blindspot`)
 
@@ -216,6 +225,22 @@ Vitrine conceitual da arquitetura:
 - Cache por matéria e versão da metodologia; o limite é 20 análises de viés por IP/hora e 100
   globais/hora.
 
+### 2.11 Cobertura da História (`/cobertura`)
+
+- Campo para abrir uma matéria já analisada por URL.
+- Link direto por cluster vindo da Análise, da Comparação ou do card de perspectivas.
+- Barra de distribuição esquerda/centro/direita com porcentagens que somam 100%.
+- Contagem de veículos classificados, selo de amostra pequena e alerta de ponto cego.
+- Três colunas com veículos e manchetes, uma linha por veículo.
+- Rating curado do veículo como contexto, quando cadastrado; caso contrário, **sem rating curado**.
+- Seção separada para enquadramentos incertos/mistos.
+- Metodologia visível e limites: não é checagem de fatos, ranking de qualidade nem prova de
+  intenção editorial.
+
+**Fonte dos dados:** `analysis_feed` para a manchete e o cluster, `perspective_feed` para as
+coberturas e `source_bias_profiles` para ratings curados. A página não dispara `analyze-url` e não
+usa fallback fictício.
+
 ---
 
 ## 3. Recursos transversais
@@ -292,6 +317,7 @@ Projeto InsForge **Prismadanoticia**, PostgreSQL com pgvector.
 | `news`                 | Matérias, texto limpo, URL, fonte, tema, cluster e embedding   |
 | `analyses`             | DNA, confiança, diversidade, resumo, evidências e sinais       |
 | `analysis_feed`        | View pública que junta análise, notícia, fonte, tema e cluster |
+| `perspective_feed`     | View pública de coberturas do cluster por enquadramento        |
 | `state_metrics`        | Indicadores por UF para o mapa                                 |
 | `replay_events`        | Quadros da evolução da narrativa                               |
 | `blindspot_reports`    | Relatórios de blindspot por tema                               |
@@ -360,6 +386,9 @@ npm run build
 - Análise real por URL com IA.
 - Cache de análises.
 - Embeddings e clusters semânticos.
+- Perspectivas por lado do enquadramento dentro do cluster, com lados ausentes e aviso de amostra
+  pequena.
+- Cobertura da História com distribuição percentual, blindspot e rating curado como contexto.
 - Rate limit por IP e global.
 - Radar de Enquadramento com escalas econômica/social, estimativa do veículo e indícios de
   distorção.
