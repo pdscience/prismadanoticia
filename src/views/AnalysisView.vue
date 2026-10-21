@@ -24,6 +24,7 @@ const input = ref(String(route.query.url || ''))
 const analysis = ref(SAMPLE_ANALYSIS)
 const loading = ref(false)
 const activeStep = ref(-1)
+const error = ref('')
 
 const prismaIndex = computed(() => dnaAverage(analysis.value.dna))
 
@@ -53,16 +54,22 @@ const publishedLabel = computed(() =>
 async function runAnalysis(url) {
   if (!url) return
   loading.value = true
+  error.value = ''
   activeStep.value = 0
 
-  for (let i = 0; i < ENGINE_PIPELINE.length; i += 1) {
-    activeStep.value = i
-    await new Promise((resolve) => setTimeout(resolve, 260))
-  }
+  try {
+    for (let i = 0; i < ENGINE_PIPELINE.length; i += 1) {
+      activeStep.value = i
+      await new Promise((resolve) => setTimeout(resolve, 260))
+    }
 
-  analysis.value = await fetchAnalysis(url)
-  activeStep.value = ENGINE_PIPELINE.length
-  loading.value = false
+    analysis.value = await fetchAnalysis(url)
+    activeStep.value = ENGINE_PIPELINE.length
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : 'Não foi possível analisar esta URL.'
+  } finally {
+    loading.value = false
+  }
 }
 
 function submit() {
@@ -127,6 +134,14 @@ onMounted(async () => {
           </PButton>
           <PButton variant="outline" @click="useSample">Ver exemplo</PButton>
         </form>
+
+        <div
+          v-if="error"
+          class="mx-auto mt-6 max-w-3xl rounded-2xl border border-energy/40 bg-energy/10 px-5 py-4 text-left text-sm text-ink"
+        >
+          <strong class="text-energy">Não foi possível analisar.</strong>
+          {{ error }}
+        </div>
       </header>
 
       <!-- pipeline em execução -->

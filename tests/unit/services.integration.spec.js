@@ -32,6 +32,14 @@ describe.skipIf(!live)('serviços InsForge ao vivo', () => {
     expect(analysis.outlet).toBe('Veículo de Exemplo')
   })
 
+  it('carrega uma análise ingerida pela Edge Function', async () => {
+    const analysis = await fetchAnalysis(
+      'https://www12.senado.leg.br/noticias/materias/2023/12/20/congresso-promulga-reforma-tributaria',
+    )
+    expect(analysis.outlet).toBe('Senado Federal')
+    expect(analysis.dna.emocao).toBeGreaterThan(0)
+  })
+
   it('carrega comparação', async () => {
     const comparison = await fetchComparison()
     expect(comparison.rows.length).toBeGreaterThan(0)

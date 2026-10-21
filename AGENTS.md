@@ -22,3 +22,12 @@ Key patterns:
 - For storage uploads, persist both the returned `url` and `key`.
 
 <!-- INSFORGE:END -->
+
+## Prisma da Notícia notes
+
+- Public reads use `src/lib/insforge.js` + `src/lib/services.js` with the anon key; `VITE_USE_MOCK=true` forces fixtures.
+- `functions/analyze-url.ts` is the only writer: it extracts the article, calls OpenRouter, and upserts `news` + `analyses` with `createAdminClient`.
+- Deploy it with `npx -y @insforge/cli@latest functions deploy analyze-url --file functions/analyze-url.ts`.
+- Server-only secrets: `OPENROUTER_API_KEY` (required) and `OPENROUTER_MODEL` (optional). Never use a `VITE_` prefix.
+- Schema and seed live in `migrations/`; apply with `npx -y @insforge/cli@latest db migrations up --all`.
+- Run `npm run lint`, `npm run format:check`, `npm run test:run`, and `npm run build` before committing.

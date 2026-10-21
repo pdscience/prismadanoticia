@@ -12,12 +12,12 @@ Brand Book Premium V1.0.
 
 ## Stack
 
-| Camada                  | Tecnologia                                |
-| ----------------------- | ----------------------------------------- |
-| Front-end               | Vue 3, Vite, Tailwind CSS v4, Motion, PWA |
-| Roteamento              | Vue Router 4 (lazy loading por rota)      |
-| Back-end                | InsForge, PostgreSQL, Edge Functions      |
-| Inteligência (previsto) | OpenAI, pgvector, Embeddings              |
+| Camada       | Tecnologia                                |
+| ------------ | ----------------------------------------- |
+| Front-end    | Vue 3, Vite, Tailwind CSS v4, Motion, PWA |
+| Roteamento   | Vue Router 4 (lazy loading por rota)      |
+| Back-end     | InsForge, PostgreSQL, Edge Functions      |
+| Inteligência | OpenRouter, pgvector, Embeddings          |
 
 ## Comandos
 
@@ -48,8 +48,10 @@ src/
 ├─ data/                      # Frames canônicos, fixtures por domínio e barrel
 ├─ lib/                       # Cliente InsForge, radar, cores, análise e serviços
 ├─ router/index.js
-├─ tests/unit/                # Testes Vitest de dados e helpers
 └─ views/                     # Home, Analysis, Compare, BlindSpot, Replay, Map, Tech, Brand, 404
+functions/analyze-url.ts      # Edge Function: extrai matéria, analisa com IA e grava no banco
+migrations/                   # Schema, RLS, views, RPC e seed do InsForge
+tests/unit/                   # Testes Vitest de dados e helpers
 ```
 
 ## Rotas × Brand Book
@@ -134,27 +136,45 @@ variáveis ficam em `.env` (nunca commitar):
 ```bash
 VITE_INSFORGE_URL=https://9aqdv427.us-east.insforge.app
 VITE_INSFORGE_ANON_KEY=...
-VITE_USE_MOCK=true
+VITE_USE_MOCK=false
 ```
 
-Use `VITE_USE_MOCK=false` quando os serviços de leitura estiverem conectados. A CLI lê o vínculo
-em `.insforge/project.json`:
+`VITE_USE_MOCK=true` força as fixtures locais. A CLI lê o vínculo em `.insforge/project.json`:
 
 ```bash
 npx -y @insforge/cli@latest current
 npx -y @insforge/cli@latest db query "select * from sources limit 1"
 ```
 
+### Edge Function `analyze-url`
+
+A função recebe `{ "url": "https://..." }`, valida a URL contra SSRF, extrai o texto da matéria,
+chama o OpenRouter e grava `news` + `analyses`. A análise fica disponível em `analysis_feed` e é
+reutilizada nas próximas visitas.
+
+```bash
+# O segredo é server-side; nunca use prefixo VITE_ nem exponha no frontend.
+npx -y @insforge/cli@latest secrets add OPENROUTER_API_KEY <chave>
+
+npx -y @insforge/cli@latest functions deploy analyze-url \
+  --file functions/analyze-url.ts \
+  --name "Analyze URL"
+
+npx -y @insforge/cli@latest functions invoke analyze-url \
+  --data '{"url":"https://www12.senado.leg.br/noticias/materias/2023/12/20/congresso-promulga-reforma-tributaria"}'
+```
+
+Modelo padrão: `openai/gpt-4o-mini`. Para trocar, defina o segredo `OPENROUTER_MODEL`.
+
 ## Próximos passos
 
-1. Criar o schema no InsForge (`sources`, `news`, `topics`, `clusters`, `analyses`) com RLS de
-   leitura pública e escrita via service role.
-2. Popular o seed e substituir as fixtures por serviços de leitura reais.
-3. Implementar o pipeline do Prisma Engine em Edge Functions (extrair → tema → embeddings →
-   clusters → indicadores → explicar).
+1. Gerar embeddings das matérias e usar `match_news` para montar clusters reais.
+2. Enriquecer a análise com comparação entre veículos e séries temporais do Replay.
+3. Adicionar rate limit e fila de análise para proteger o custo do OpenRouter.
 4. Publicar a extensão Chrome reutilizando `DnaRadar` e `PolarizationMap`.
 
 ---
 
-Dados exibidos atualmente são de demonstração, gerados de forma determinística a partir da URL
-informada, para permitir avaliar o produto antes da integração com IA.
+As telas de leitura usam o InsForge; se o backend estiver indisponível, os serviços caem para as
+fixtures para preservar a navegação. A análise de URLs novas passa pela Edge Function e não gera
+resultados fictícios em produção.

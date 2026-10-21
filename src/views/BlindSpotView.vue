@@ -30,7 +30,7 @@ const query = ref(BLINDSPOT.topic)
 
 const severityColor = { alta: '#FF3B5C', média: '#FFC24B', baixa: '#6F9BFF' }
 
-const maxArticles = computed(() => Math.max(...data.value.covered.map((c) => c.articles)))
+const maxArticles = computed(() => Math.max(1, ...data.value.covered.map((c) => c.articles)))
 
 /** Quanto maior o período, mais confiável é afirmar ausência de cobertura. */
 const reliability = computed(() => {

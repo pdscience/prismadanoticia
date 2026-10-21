@@ -40,7 +40,7 @@ function mapAnalysis(row) {
     readingTime: row.reading_time,
     confidence: row.confidence,
     sourceDiversity: row.source_diversity,
-    clusterSize: row.cluster_size,
+    clusterSize: row.cluster_size ?? 1,
     dominantFrame: row.dominant_frame,
     summary: row.summary ?? [],
     dna: row.dna ?? {},
@@ -75,27 +75,36 @@ export function fetchTrends() {
   )
 }
 
-export function fetchAnalysis(url = SAMPLE_ANALYSIS.url) {
-  return withFallback(
-    async () => {
-      const row = ensure(
-        await insforge.database
-          .from('analysis_feed')
-          .select(
-            'id,url,title,outlet,author,published_at,topic,reading_time,confidence,source_diversity,cluster_size,dominant_frame,summary,evidences,signals,dna',
-          )
-          .eq('url', url)
-          .maybeSingle(),
+export async function fetchAnalysis(url = SAMPLE_ANALYSIS.url) {
+  if (useMockData || !insforge) {
+    return url === SAMPLE_ANALYSIS.url ? SAMPLE_ANALYSIS : analyzeUrl(url)
+  }
+
+  const row = ensure(
+    await insforge.database
+      .from('analysis_feed')
+      .select(
+        'id,url,title,outlet,author,published_at,topic,reading_time,confidence,source_diversity,cluster_size,dominant_frame,summary,evidences,signals,dna',
       )
-      if (!row) throw new Error('Análise não encontrada')
-      return mapAnalysis(row)
-    },
-    () => (url === SAMPLE_ANALYSIS.url ? SAMPLE_ANALYSIS : analyzeUrl(url)),
+      .eq('url', url)
+      .maybeSingle(),
   )
+  if (row) return mapAnalysis(row)
+
+  const { data, error } = await insforge.functions.invoke('analyze-url', { body: { url } })
+  if (error) throw new Error(error.message || 'Não foi possível analisar esta URL.')
+
+  const analysis = data?.analysis ?? data
+  if (!analysis?.title) throw new Error('A análise não retornou dados válidos.')
+  return { ...analysis, clusterSize: analysis.clusterSize ?? 1 }
 }
 
-export function fetchSampleAnalysis() {
-  return fetchAnalysis(SAMPLE_ANALYSIS.url)
+export async function fetchSampleAnalysis() {
+  try {
+    return await fetchAnalysis(SAMPLE_ANALYSIS.url)
+  } catch {
+    return SAMPLE_ANALYSIS
+  }
 }
 
 export function fetchComparison(topic = COMPARISON.topic) {
@@ -114,7 +123,7 @@ export function fetchComparison(topic = COMPARISON.topic) {
       return {
         topic: rows[0].topic,
         window: COMPARISON.window,
-        clusterSize: rows[0].cluster_size,
+        clusterSize: rows[0].cluster_size ?? rows.length,
         rows: compared.map((row) => ({
           outlet: row.outlet,
           highlight: row.highlight,
