@@ -19,6 +19,9 @@ const FRAMES = {
 const DNA_KEYS = ['emocao', 'fontes', 'evidencias', 'persuasao', 'equilibrio', 'narrativa']
 const MAX_ARTICLE_CHARS = 14000
 const MAX_PAGE_BYTES = 2_000_000
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
+const RATE_LIMIT_PER_IP = 10
+const RATE_LIMIT_GLOBAL = 100
 
 const SYSTEM_PROMPT = `Você é o Prisma Engine, um analisador de mídia brasileiro.
 Analise APENAS o texto fornecido e responda SOMENTE com um objeto JSON válido, sem markdown.
@@ -447,6 +450,56 @@ function getAdmin() {
   return createAdminClient({ baseUrl, apiKey })
 }
 
+function getClientIp(req) {
+  const forwarded = req.headers.get('x-forwarded-for')
+  if (forwarded) return forwarded.split(',')[0].trim().slice(0, 200)
+  return (
+    req.headers.get('x-real-ip') ||
+    req.headers.get('cf-connecting-ip') ||
+    req.headers.get('true-client-ip') ||
+    ''
+  )
+}
+
+async function hashIp(ip) {
+  const salt = Deno.env.get('RATE_LIMIT_SALT') ?? 'prisma-rate-limit'
+  const data = new TextEncoder().encode(`${salt}:${ip}`)
+  const digest = await crypto.subtle.digest('SHA-256', data)
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+async function enforceRateLimit(req, url) {
+  const admin = getAdmin()
+  const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString()
+  const ip = getClientIp(req)
+  const ipHash = ip ? await hashIp(ip) : null
+
+  if (ipHash) {
+    const { data, error } = await admin.database
+      .from('analysis_requests')
+      .select('id')
+      .eq('ip_hash', ipHash)
+      .gte('created_at', since)
+      .limit(RATE_LIMIT_PER_IP + 1)
+    if (error) throw new Error(`Limite por IP: ${error.message}`)
+    if ((data?.length ?? 0) >= RATE_LIMIT_PER_IP) return false
+  }
+
+  const { data: globalRows, error: globalError } = await admin.database
+    .from('analysis_requests')
+    .select('id')
+    .gte('created_at', since)
+    .limit(RATE_LIMIT_GLOBAL + 1)
+  if (globalError) throw new Error(`Limite global: ${globalError.message}`)
+  if ((globalRows?.length ?? 0) >= RATE_LIMIT_GLOBAL) return false
+
+  const { error: insertError } = await admin.database
+    .from('analysis_requests')
+    .insert([{ ip_hash: ipHash, url }])
+  if (insertError) throw new Error(`Registrar análise: ${insertError.message}`)
+  return true
+}
+
 async function findCached(url) {
   const row = expect(
     await getAdmin()
@@ -589,6 +642,19 @@ export default async function handler(req) {
 
     const cached = await findCached(url)
     if (cached) return json({ analysis: cached, cached: true })
+
+    const allowed = await enforceRateLimit(req, url)
+    if (!allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'Limite de análises por hora atingido. Tente novamente mais tarde.',
+        }),
+        {
+          status: 429,
+          headers: { ...CORS, 'Content-Type': 'application/json', 'Retry-After': '3600' },
+        },
+      )
+    }
 
     const article = await fetchArticle(url)
     if (article.text.length < 300) {

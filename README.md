@@ -130,8 +130,9 @@ location / {
 
 ## InsForge
 
-O backend fica no projeto **Prismadanoticia** (`https://9aqdv427.us-east.insforge.app`). As
-variáveis ficam em `.env` (nunca commitar):
+O frontend está publicado em **https://9aqdv427.insforge.site** e o backend fica no projeto
+**Prismadanoticia** (`https://9aqdv427.us-east.insforge.app`). As variáveis ficam em `.env`
+(nunca commitar):
 
 ```bash
 VITE_INSFORGE_URL=https://9aqdv427.us-east.insforge.app
@@ -166,11 +167,24 @@ npx -y @insforge/cli@latest functions invoke analyze-url \
 
 Modelo padrão: `openai/gpt-4o-mini`. Para trocar, defina o segredo `OPENROUTER_MODEL`.
 
+### Limites e deploy do frontend
+
+Cada IP pode disparar 10 análises novas por hora; o projeto também tem um teto global de 100 por
+hora. URLs já analisadas são servidas do cache e não consomem o limite. O hash do IP usa o segredo
+`RATE_LIMIT_SALT` e os registros ficam em `analysis_requests`.
+
+```bash
+npx -y @insforge/cli@latest deployments env set VITE_INSFORGE_URL https://9aqdv427.us-east.insforge.app
+npx -y @insforge/cli@latest deployments env set VITE_INSFORGE_ANON_KEY <anon-key>
+npx -y @insforge/cli@latest deployments env set VITE_USE_MOCK false
+npx -y @insforge/cli@latest deployments deploy .
+```
+
 ## Próximos passos
 
 1. Gerar embeddings das matérias e usar `match_news` para montar clusters reais.
 2. Enriquecer a análise com comparação entre veículos e séries temporais do Replay.
-3. Adicionar rate limit e fila de análise para proteger o custo do OpenRouter.
+3. Limpar periodicamente `analysis_requests` e monitorar consumo no OpenRouter.
 4. Publicar a extensão Chrome reutilizando `DnaRadar` e `PolarizationMap`.
 
 ---

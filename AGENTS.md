@@ -28,6 +28,8 @@ Key patterns:
 - Public reads use `src/lib/insforge.js` + `src/lib/services.js` with the anon key; `VITE_USE_MOCK=true` forces fixtures.
 - `functions/analyze-url.ts` is the only writer: it extracts the article, calls OpenRouter, and upserts `news` + `analyses` with `createAdminClient`.
 - Deploy it with `npx -y @insforge/cli@latest functions deploy analyze-url --file functions/analyze-url.ts`.
-- Server-only secrets: `OPENROUTER_API_KEY` (required) and `OPENROUTER_MODEL` (optional). Never use a `VITE_` prefix.
+- Server-only secrets: `OPENROUTER_API_KEY` (required), `OPENROUTER_MODEL` (optional) and `RATE_LIMIT_SALT` (required for IP hashing). Never use a `VITE_` prefix.
+- The function limits 10 new analyses per IP/hour and 100 globally; cached URLs bypass the limit.
 - Schema and seed live in `migrations/`; apply with `npx -y @insforge/cli@latest db migrations up --all`.
+- Deploy the frontend with `npx -y @insforge/cli@latest deployments deploy .` after setting the `VITE_*` env vars in `deployments env set`.
 - Run `npm run lint`, `npm run format:check`, `npm run test:run`, and `npm run build` before committing.
