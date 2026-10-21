@@ -6,7 +6,7 @@ import BrandLogo from '@/components/brand/BrandLogo.vue'
 import PBadge from '@/components/ui/PBadge.vue'
 import PCard from '@/components/ui/PCard.vue'
 import SectionHeading from '@/components/ui/SectionHeading.vue'
-import { ARCHETYPES, PITCH_SLIDES } from '@/data/prisma'
+import { ARCHETYPES, PITCH_SLIDES } from '@/data'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
@@ -26,9 +26,24 @@ const palette = [
 ]
 
 const typography = [
-  { use: 'Logo', font: 'Space Grotesk', sample: 'PRISMA da Notícia', className: 'font-display text-2xl' },
-  { use: 'Títulos', font: 'Space Grotesk', sample: 'Toda notícia tem um ângulo.', className: 'font-display text-xl' },
-  { use: 'Interface', font: 'Inter', sample: 'Cole um link e veja o DNA da notícia.', className: 'font-sans text-base' },
+  {
+    use: 'Logo',
+    font: 'Space Grotesk',
+    sample: 'PRISMA da Notícia',
+    className: 'font-display text-2xl',
+  },
+  {
+    use: 'Títulos',
+    font: 'Space Grotesk',
+    sample: 'Toda notícia tem um ângulo.',
+    className: 'font-display text-xl',
+  },
+  {
+    use: 'Interface',
+    font: 'Inter',
+    sample: 'Cole um link e veja o DNA da notícia.',
+    className: 'font-sans text-base',
+  },
 ]
 
 const versions = [
@@ -91,9 +106,21 @@ const versions = [
         />
 
         <div class="mt-12 grid gap-5 md:grid-cols-3">
-          <PCard v-for="v in versions" :key="v.variant" data-reveal accent="#6F9BFF" class="text-center">
-            <div class="flex h-32 items-center justify-center rounded-2xl border border-hairline bg-midnight">
-              <BrandLogo :variant="v.variant" :size="v.variant === 'icon' ? 64 : 44" class="text-white" />
+          <PCard
+            v-for="v in versions"
+            :key="v.variant"
+            data-reveal
+            accent="#6F9BFF"
+            class="text-center"
+          >
+            <div
+              class="flex h-32 items-center justify-center rounded-2xl border border-hairline bg-midnight"
+            >
+              <BrandLogo
+                :variant="v.variant"
+                :size="v.variant === 'icon' ? 64 : 44"
+                class="text-white"
+              />
             </div>
             <p class="mt-5 font-display text-base">{{ v.label }}</p>
             <p class="mt-1.5 text-xs text-ink-muted">{{ v.note }}</p>
@@ -146,7 +173,9 @@ const versions = [
                 <p class="text-[0.62rem] uppercase tracking-[0.24em] text-ink-muted">{{ t.use }}</p>
                 <p class="mt-2" :class="t.className">{{ t.sample }}</p>
               </div>
-              <code class="rounded-full border border-hairline px-3 py-1 font-mono text-xs text-ink-muted">
+              <code
+                class="rounded-full border border-hairline px-3 py-1 font-mono text-xs text-ink-muted"
+              >
                 {{ t.font }}
               </code>
             </div>

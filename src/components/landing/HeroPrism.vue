@@ -10,7 +10,7 @@ import { useRouter } from 'vue-router'
 
 import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
-import { frame } from '@/data/prisma'
+import { frame } from '@/data'
 
 const router = useRouter()
 const url = ref('')
@@ -91,18 +91,15 @@ onMounted(() => {
             <PBadge color="#8B5CF6" dot pulse>MediaTech · AI · News Intelligence</PBadge>
           </div>
 
-          <h1
-            data-hero
-            class="mt-6 text-4xl leading-[1.06] sm:text-5xl lg:text-[3.7rem]"
-          >
+          <h1 data-hero class="mt-6 text-4xl leading-[1.06] sm:text-5xl lg:text-[3.7rem]">
             Toda notícia tem um ângulo.
             <span class="text-gradient">Descubra todos.</span>
           </h1>
 
           <p data-hero class="mt-6 max-w-xl text-lg leading-relaxed text-ink-muted">
             A notícia não muda. O que muda é o ângulo pelo qual ela é apresentada. O
-            <strong class="font-medium text-ink">Prisma da Notícia</strong> usa IA para revelar o DNA
-            de cada matéria, comparar coberturas e mostrar o que ficou de fora.
+            <strong class="font-medium text-ink">Prisma da Notícia</strong> usa IA para revelar o
+            DNA de cada matéria, comparar coberturas e mostrar o que ficou de fora.
           </p>
 
           <!-- Ação principal -->
@@ -111,7 +108,13 @@ onMounted(() => {
             <div class="relative flex-1">
               <svg
                 class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted"
-                width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
               >
                 <path d="M10 13a4 4 0 0 0 5.7 0l3-3A4 4 0 0 0 13 4.3l-1.7 1.7" />
                 <path d="M14 11a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 19.7l1.7-1.7" />
@@ -130,7 +133,13 @@ onMounted(() => {
               <template #icon-right>
                 <svg
                   class="transition-transform duration-300 group-hover:translate-x-1"
-                  width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
                 >
                   <path d="M5 12h13M13 6l6 6-6 6" />
                 </svg>
@@ -239,13 +248,35 @@ onMounted(() => {
                 stroke-width="3"
                 stroke-linejoin="round"
               />
-              <path d="M300 104 L300 322" stroke="url(#hero-edge)" stroke-width="1" stroke-opacity="0.3" />
+              <path
+                d="M300 104 L300 322"
+                stroke="url(#hero-edge)"
+                stroke-width="1"
+                stroke-opacity="0.3"
+              />
             </g>
 
-            <circle data-core cx="350" cy="215" r="7" fill="currentColor" class="text-ink" style="opacity: 0" />
+            <circle
+              data-core
+              cx="350"
+              cy="215"
+              r="7"
+              fill="currentColor"
+              class="text-ink"
+              style="opacity: 0"
+            />
 
             <!-- anel pulsante -->
-            <circle cx="350" cy="215" r="16" fill="none" stroke="#B794FF" stroke-opacity="0.5" class="animate-pulse-ring" style="transform-origin: 350px 215px" />
+            <circle
+              cx="350"
+              cy="215"
+              r="16"
+              fill="none"
+              stroke="#B794FF"
+              stroke-opacity="0.5"
+              class="animate-pulse-ring"
+              style="transform-origin: 350px 215px"
+            />
           </svg>
         </div>
       </div>

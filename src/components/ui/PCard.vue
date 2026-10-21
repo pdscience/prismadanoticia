@@ -9,10 +9,7 @@ defineProps({
 <template>
   <div
     class="group relative overflow-hidden rounded-[var(--radius-card)] surface-card transition-all duration-500"
-    :class="[
-      padded ? 'p-6' : '',
-      hover ? 'hover:-translate-y-1 hover:border-hairline-strong' : '',
-    ]"
+    :class="[padded ? 'p-6' : '', hover ? 'hover:-translate-y-1 hover:border-hairline-strong' : '']"
   >
     <!-- brilho de accent -->
     <div

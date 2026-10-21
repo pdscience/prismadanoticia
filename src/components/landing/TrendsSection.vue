@@ -3,7 +3,7 @@
 import PBadge from '@/components/ui/PBadge.vue'
 import PCard from '@/components/ui/PCard.vue'
 import SectionHeading from '@/components/ui/SectionHeading.vue'
-import { TRENDS } from '@/data/prisma'
+import { TRENDS, frame } from '@/data'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
@@ -40,7 +40,16 @@ const maxOutlets = Math.max(...TRENDS.map((t) => t.outlets))
                 :class="trend.delta >= 0 ? 'text-mint' : 'text-energy'"
                 :style="{ background: trend.delta >= 0 ? '#2EE6A814' : '#FF3B5C14' }"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" :class="trend.delta >= 0 ? '' : 'rotate-180'">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  :class="trend.delta >= 0 ? '' : 'rotate-180'"
+                >
                   <path d="M12 19V5M5 12l7-7 7 7" />
                 </svg>
                 {{ Math.abs(trend.delta).toFixed(1) }}%
@@ -51,11 +60,11 @@ const maxOutlets = Math.max(...TRENDS.map((t) => t.outlets))
 
             <div class="mt-5 flex flex-wrap gap-2">
               <span
-                v-for="frame in trend.frames"
-                :key="frame"
+                v-for="frameKey in trend.frames"
+                :key="frameKey"
                 class="rounded-full border border-hairline px-2.5 py-0.5 text-[0.68rem] text-ink-muted"
               >
-                {{ frame }}
+                {{ frame(frameKey).label }}
               </span>
             </div>
           </div>
@@ -97,7 +106,15 @@ const maxOutlets = Math.max(...TRENDS.map((t) => t.outlets))
             class="inline-flex items-center gap-2 text-sm font-medium text-prism-soft transition-transform hover:translate-x-1"
           >
             Abrir o mapa nacional
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
               <path d="M5 12h13M13 6l6 6-6 6" />
             </svg>
           </RouterLink>

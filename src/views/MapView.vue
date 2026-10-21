@@ -7,7 +7,9 @@ import MeterBar from '@/components/ui/MeterBar.vue'
 import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
-import { POLARIZATION_THEMES, STATES, dominantTheme, polarizationColor } from '@/data/prisma'
+import { POLARIZATION_THEMES, STATES } from '@/data'
+import { polarizationColor } from '@/lib/colors'
+import { dominantTheme } from '@/lib/intel'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
@@ -21,14 +23,14 @@ const modes = [
 const mode = ref('dominante')
 const selected = ref(STATES.find((s) => s.uf === 'SP'))
 
-const ranking = computed(() => [...STATES].sort((a, b) => b.polarization - a.polarization).slice(0, 6))
+const ranking = computed(() =>
+  [...STATES].sort((a, b) => b.polarization - a.polarization).slice(0, 6),
+)
 
 const nationalMix = computed(() => {
   const totals = {}
   POLARIZATION_THEMES.forEach((t) => {
-    totals[t.key] = Math.round(
-      STATES.reduce((sum, s) => sum + s.themes[t.key], 0) / STATES.length,
-    )
+    totals[t.key] = Math.round(STATES.reduce((sum, s) => sum + s.themes[t.key], 0) / STATES.length)
   })
   return totals
 })
@@ -86,7 +88,9 @@ const totalOutlets = STATES.reduce((sum, s) => sum + s.outlets, 0)
             <PolarizationMap :mode="mode" @select="selected = $event" />
           </div>
 
-          <div class="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 border-t border-hairline pt-5">
+          <div
+            class="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 border-t border-hairline pt-5"
+          >
             <span
               v-for="theme in POLARIZATION_THEMES"
               :key="theme.key"
@@ -112,7 +116,10 @@ const totalOutlets = STATES.reduce((sum, s) => sum + s.outlets, 0)
                   </strong>
                 </p>
               </div>
-              <span class="font-display text-4xl font-semibold" :style="{ color: dominantTheme(selected).color }">
+              <span
+                class="font-display text-4xl font-semibold"
+                :style="{ color: dominantTheme(selected).color }"
+              >
                 {{ selected.uf }}
               </span>
             </div>

@@ -5,7 +5,7 @@ import MeterBar from '@/components/ui/MeterBar.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
 import SectionHeading from '@/components/ui/SectionHeading.vue'
-import { DNA_AXES, SAMPLE_ANALYSIS } from '@/data/prisma'
+import { DNA_AXES, SAMPLE_ANALYSIS } from '@/data'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()

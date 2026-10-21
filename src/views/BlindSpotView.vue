@@ -11,7 +11,7 @@ import MeterBar from '@/components/ui/MeterBar.vue'
 import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
-import { BLINDSPOT } from '@/data/prisma'
+import { BLINDSPOT } from '@/data'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
@@ -84,15 +84,26 @@ const missing = computed(() =>
       <!-- aviso metodológico -->
       <PCard data-reveal accent="#FFC24B" class="mt-10">
         <div class="flex flex-wrap items-center gap-5">
-          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-insight/15 text-insight">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <span
+            class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-insight/15 text-insight"
+          >
+            <svg
+              width="19"
+              height="19"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            >
               <circle cx="12" cy="12" r="9" />
               <path d="M12 8v.5M12 11.5V16" />
             </svg>
           </span>
           <p class="flex-1 text-sm leading-relaxed text-ink-muted">
             <strong class="text-ink">Regra metodológica.</strong>
-            {{ BLINDSPOT.note }} Período selecionado: <strong class="text-ink">{{ period }} dias</strong>.
+            {{ BLINDSPOT.note }} Período selecionado:
+            <strong class="text-ink">{{ period }} dias</strong>.
           </p>
           <div class="text-center">
             <span class="font-display text-2xl font-semibold text-insight">{{ reliability }}%</span>
@@ -144,7 +155,10 @@ const missing = computed(() =>
                 </div>
                 <span
                   class="shrink-0 rounded-full px-2.5 py-1 text-[0.62rem] font-semibold uppercase tracking-wider"
-                  :style="{ color: severityColor[m.severity], background: `${severityColor[m.severity]}18` }"
+                  :style="{
+                    color: severityColor[m.severity],
+                    background: `${severityColor[m.severity]}18`,
+                  }"
                 >
                   {{ m.severity }}
                 </span>

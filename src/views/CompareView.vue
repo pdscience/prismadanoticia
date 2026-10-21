@@ -6,7 +6,8 @@ import DnaRadar from '@/components/analysis/DnaRadar.vue'
 import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
-import { COMPARISON, DNA_AXES, SAMPLE_ANALYSIS, dnaAverage } from '@/data/prisma'
+import { COMPARISON, DNA_AXES, SAMPLE_ANALYSIS } from '@/data'
+import { dnaAverage } from '@/lib/radar'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
@@ -82,7 +83,9 @@ function search() {
         <div class="overflow-x-auto">
           <table class="w-full min-w-[720px] text-left">
             <thead>
-              <tr class="border-b border-hairline text-[0.68rem] uppercase tracking-[0.18em] text-ink-muted">
+              <tr
+                class="border-b border-hairline text-[0.68rem] uppercase tracking-[0.18em] text-ink-muted"
+              >
                 <th class="px-6 py-4 font-medium">Veículo</th>
                 <th class="px-6 py-4 font-medium">Destaque</th>
                 <th class="px-6 py-4 font-medium">Ângulo predominante</th>

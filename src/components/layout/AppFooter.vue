@@ -57,7 +57,15 @@ const year = new Date().getFullYear()
             class="inline-flex items-center gap-2 text-sm text-electric-soft transition-opacity hover:opacity-80"
           >
             prismadanoticia.com.br
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
               <path d="M7 17 17 7M9 7h8v8" />
             </svg>
           </a>

@@ -7,13 +7,7 @@ import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
 import SectionHeading from '@/components/ui/SectionHeading.vue'
-import {
-  APP_FEATURES,
-  DB_TABLES,
-  ENGINE_PIPELINE,
-  EXTENSION_PANELS,
-  STACK,
-} from '@/data/prisma'
+import { APP_FEATURES, DB_TABLES, ENGINE_PIPELINE, EXTENSION_PANELS, STACK } from '@/data'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
@@ -37,7 +31,10 @@ const { root } = useReveal()
       <section class="mt-16">
         <div class="grid gap-5 md:grid-cols-3">
           <PCard v-for="group in STACK" :key="group.group" :accent="group.accent" data-reveal>
-            <h2 class="font-display text-sm uppercase tracking-[0.22em]" :style="{ color: group.accent }">
+            <h2
+              class="font-display text-sm uppercase tracking-[0.22em]"
+              :style="{ color: group.accent }"
+            >
               {{ group.group }}
             </h2>
             <ul class="mt-5 space-y-2.5">
@@ -73,7 +70,9 @@ const { root } = useReveal()
               >
                 {{ step.step }}
               </span>
-              <span class="rounded-full border border-hairline px-2.5 py-0.5 text-[0.62rem] text-ink-muted">
+              <span
+                class="rounded-full border border-hairline px-2.5 py-0.5 text-[0.62rem] text-ink-muted"
+              >
                 {{ step.tech }}
               </span>
             </div>
@@ -85,7 +84,15 @@ const { root } = useReveal()
         <PCard data-reveal accent="#2EE6A8" class="mt-5">
           <div class="flex flex-wrap items-center gap-6">
             <span class="grid h-11 w-11 place-items-center rounded-xl bg-mint/15 text-mint">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              >
                 <path d="M13 3 4 14h6l-1 7 9-11h-6l1-7Z" />
               </svg>
             </span>
@@ -110,11 +117,22 @@ const { root } = useReveal()
         <div class="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <PCard v-for="table in DB_TABLES" :key="table.name" accent="#6F9BFF" data-reveal>
             <div class="flex items-center gap-2.5">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6F9BFF" stroke-width="1.7">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#6F9BFF"
+                stroke-width="1.7"
+              >
                 <ellipse cx="12" cy="6" rx="7.5" ry="3" />
-                <path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3" />
+                <path
+                  d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"
+                />
               </svg>
-              <code class="font-display text-base font-medium text-electric-soft">{{ table.name }}</code>
+              <code class="font-display text-base font-medium text-electric-soft">{{
+                table.name
+              }}</code>
             </div>
             <p class="mt-4 text-sm leading-relaxed text-ink-muted">{{ table.purpose }}</p>
             <div class="mt-4 flex flex-wrap gap-1.5">
@@ -192,8 +210,15 @@ const { root } = useReveal()
                     A narrativa sobre “Reforma Tributária” mudou de ângulo nas últimas 6h.
                   </p>
                 </div>
-                <div class="flex justify-between rounded-2xl border border-white/10 bg-white/4 px-4 py-2.5">
-                  <span v-for="i in 4" :key="i" class="h-1.5 w-1.5 rounded-full" :class="i === 1 ? 'bg-electric' : 'bg-white/20'" />
+                <div
+                  class="flex justify-between rounded-2xl border border-white/10 bg-white/4 px-4 py-2.5"
+                >
+                  <span
+                    v-for="i in 4"
+                    :key="i"
+                    class="h-1.5 w-1.5 rounded-full"
+                    :class="i === 1 ? 'bg-electric' : 'bg-white/20'"
+                  />
                 </div>
               </div>
             </div>
@@ -217,7 +242,9 @@ const { root } = useReveal()
               <span class="h-2.5 w-2.5 rounded-full bg-energy/70" />
               <span class="h-2.5 w-2.5 rounded-full bg-insight/70" />
               <span class="h-2.5 w-2.5 rounded-full bg-mint/70" />
-              <div class="ml-4 flex-1 truncate rounded-full bg-ink/8 px-4 py-1.5 text-xs text-ink-muted">
+              <div
+                class="ml-4 flex-1 truncate rounded-full bg-ink/8 px-4 py-1.5 text-xs text-ink-muted"
+              >
                 portal.com.br/politica/reforma-tributaria
               </div>
             </div>
@@ -232,11 +259,19 @@ const { root } = useReveal()
                 <div class="h-3 w-5/6 rounded-full bg-ink/6" />
               </div>
               <div class="rounded-2xl border border-prism/30 bg-prism/8 p-4">
-                <p class="font-display text-xs uppercase tracking-[0.2em] text-prism-soft">Prisma</p>
+                <p class="font-display text-xs uppercase tracking-[0.2em] text-prism-soft">
+                  Prisma
+                </p>
                 <ul class="mt-4 space-y-3">
-                  <li v-for="panel in EXTENSION_PANELS" :key="panel.title" class="border-b border-hairline pb-3 last:border-0 last:pb-0">
+                  <li
+                    v-for="panel in EXTENSION_PANELS"
+                    :key="panel.title"
+                    class="border-b border-hairline pb-3 last:border-0 last:pb-0"
+                  >
                     <p class="text-xs font-medium text-ink">{{ panel.title }}</p>
-                    <p class="mt-1 text-[0.65rem] leading-snug text-ink-muted">{{ panel.detail }}</p>
+                    <p class="mt-1 text-[0.65rem] leading-snug text-ink-muted">
+                      {{ panel.detail }}
+                    </p>
                   </li>
                 </ul>
               </div>
@@ -250,7 +285,15 @@ const { root } = useReveal()
               lateral alimenta os clusters e melhora o mapa nacional.
             </p>
             <ul class="mt-6 space-y-3 text-sm text-ink-muted">
-              <li v-for="item in ['Zero atrito: não exige sair do site', 'Onboarding dentro da própria notícia', 'Dados agregados fortalecem o moat']" :key="item" class="flex items-start gap-3">
+              <li
+                v-for="item in [
+                  'Zero atrito: não exige sair do site',
+                  'Onboarding dentro da própria notícia',
+                  'Dados agregados fortalecem o moat',
+                ]"
+                :key="item"
+                class="flex items-start gap-3"
+              >
                 <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-prism-soft" />
                 {{ item }}
               </li>

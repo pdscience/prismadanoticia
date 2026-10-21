@@ -4,7 +4,7 @@ import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PolarizationMap from '@/components/intel/PolarizationMap.vue'
 import SectionHeading from '@/components/ui/SectionHeading.vue'
-import { POLARIZATION_THEMES } from '@/data/prisma'
+import { POLARIZATION_THEMES } from '@/data'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
@@ -35,9 +35,9 @@ const audiences = ['Imprensa', 'Universidades', 'Institutos de pesquisa', 'Órg�
             />
 
             <p data-reveal class="mt-6 max-w-xl text-sm leading-relaxed text-ink-muted">
-              Isso transforma o Prisma de um analisador de notícias em uma plataforma de inteligência
-              nacional sobre narrativas: um ativo difícil de copiar e extremamente valioso para quem
-              estuda a opinião pública.
+              Isso transforma o Prisma de um analisador de notícias em uma plataforma de
+              inteligência nacional sobre narrativas: um ativo difícil de copiar e extremamente
+              valioso para quem estuda a opinião pública.
             </p>
 
             <div data-reveal class="mt-7 flex flex-wrap gap-2">

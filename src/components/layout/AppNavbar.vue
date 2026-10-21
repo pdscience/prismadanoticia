@@ -40,7 +40,9 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
     <div class="container-prisma">
       <nav
         class="flex items-center justify-between gap-4 rounded-full px-4 py-2.5 transition-all duration-500"
-        :class="scrolled ? 'glass shadow-[0_20px_50px_-30px_rgba(0,0,0,0.9)]' : 'border-transparent'"
+        :class="
+          scrolled ? 'glass shadow-[0_20px_50px_-30px_rgba(0,0,0,0.9)]' : 'border-transparent'
+        "
       >
         <RouterLink to="/" class="group shrink-0" aria-label="Prisma da Notícia — início">
           <BrandLogo variant="horizontal" :size="34" animated />
@@ -51,11 +53,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
             <RouterLink
               :to="link.to"
               class="relative rounded-full px-3.5 py-2 text-sm transition-colors duration-300"
-              :class="
-                route.path === link.to
-                  ? 'text-ink'
-                  : 'text-ink-muted hover:text-ink'
-              "
+              :class="route.path === link.to ? 'text-ink' : 'text-ink-muted hover:text-ink'"
             >
               {{ link.label }}
               <span
@@ -73,12 +71,34 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
             :aria-label="theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'"
             @click="toggle"
           >
-            <svg v-if="theme === 'dark'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <svg
+              v-if="theme === 'dark'"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
               <circle cx="12" cy="12" r="4.2" />
-              <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4" stroke-linecap="round" />
+              <path
+                d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"
+                stroke-linecap="round"
+              />
             </svg>
-            <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z" stroke-linejoin="round" />
+            <svg
+              v-else
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
+              <path
+                d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z"
+                stroke-linejoin="round"
+              />
             </svg>
           </button>
 
@@ -92,7 +112,15 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
             aria-label="Abrir menu"
             @click="open = !open"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            >
               <path v-if="!open" d="M4 7h16M4 12h16M4 17h16" />
               <path v-else d="M6 6l12 12M18 6L6 18" />
             </svg>

@@ -4,7 +4,9 @@ import PButton from '@/components/ui/PButton.vue'
 </script>
 
 <template>
-  <div class="container-prisma flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
+  <div
+    class="container-prisma flex min-h-[60vh] flex-col items-center justify-center py-20 text-center"
+  >
     <BrandLogo variant="icon" :size="72" animated />
 
     <p class="mt-8 font-display text-6xl font-semibold text-gradient">404</p>

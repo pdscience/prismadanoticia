@@ -26,10 +26,8 @@ const sizes = {
 const variants = {
   primary:
     'text-white bg-linear-to-r from-electric via-electric to-prism shadow-[0_18px_40px_-18px_rgba(45,107,255,0.85)] hover:shadow-[0_22px_50px_-16px_rgba(139,92,246,0.9)] hover:-translate-y-0.5',
-  gold:
-    'text-midnight bg-linear-to-r from-insight to-insight-soft shadow-[0_18px_40px_-18px_rgba(255,194,75,0.8)] hover:-translate-y-0.5',
-  outline:
-    'text-ink border border-hairline-strong hover:border-electric-soft hover:bg-electric/10',
+  gold: 'text-midnight bg-linear-to-r from-insight to-insight-soft shadow-[0_18px_40px_-18px_rgba(255,194,75,0.8)] hover:-translate-y-0.5',
+  outline: 'text-ink border border-hairline-strong hover:border-electric-soft hover:bg-electric/10',
   ghost: 'text-ink-muted hover:text-ink hover:bg-surface',
 }
 </script>

@@ -6,7 +6,8 @@
 import { animate } from 'motion'
 import { computed, onMounted, ref, useId } from 'vue'
 
-import { DNA_AXES, radarPoint, radarPolygon } from '@/data/prisma'
+import { DNA_AXES } from '@/data'
+import { radarPoint, radarPolygon } from '@/lib/radar'
 
 const props = defineProps({
   values: { type: Object, required: true },
@@ -44,7 +45,11 @@ function polygon(series) {
 
 const ringPolygons = computed(() =>
   RINGS.map((ratio) =>
-    DNA_AXES.map((_, i) => point(i, ratio * 100).map((n) => n.toFixed(1)).join(',')).join(' '),
+    DNA_AXES.map((_, i) =>
+      point(i, ratio * 100)
+        .map((n) => n.toFixed(1))
+        .join(','),
+    ).join(' '),
   ),
 )
 

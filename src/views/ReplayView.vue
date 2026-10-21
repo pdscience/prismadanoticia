@@ -8,7 +8,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
-import { REPLAY, frame } from '@/data/prisma'
+import { REPLAY, frame } from '@/data'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
@@ -110,7 +110,10 @@ onBeforeUnmount(stop)
             aria-label="Linha do tempo da narrativa"
             @input="stop"
           />
-          <ol class="mt-4 grid gap-2" :style="`grid-template-columns: repeat(${frames.length}, minmax(0, 1fr))`">
+          <ol
+            class="mt-4 grid gap-2"
+            :style="`grid-template-columns: repeat(${frames.length}, minmax(0, 1fr))`"
+          >
             <li v-for="(f, i) in frames" :key="f.time">
               <button
                 type="button"
@@ -140,7 +143,9 @@ onBeforeUnmount(stop)
           <Transition name="route-fade" mode="out-in">
             <div :key="currentFrame.time">
               <h2 class="text-2xl">{{ currentFrame.label }}</h2>
-              <p class="mt-4 text-sm leading-relaxed text-ink-muted">{{ currentFrame.description }}</p>
+              <p class="mt-4 text-sm leading-relaxed text-ink-muted">
+                {{ currentFrame.description }}
+              </p>
 
               <div class="mt-8">
                 <p class="text-xs uppercase tracking-[0.2em] text-ink-muted">
@@ -159,7 +164,9 @@ onBeforeUnmount(stop)
                   <div v-for="m in mixKeys" :key="`l-${m.key}`" class="flex items-center gap-2">
                     <span class="h-2 w-2 rounded-sm" :style="{ background: m.color }" />
                     <span class="text-xs text-ink-muted">{{ m.label }}</span>
-                    <span class="font-display text-xs font-semibold">{{ currentFrame.mix[m.key] }}%</span>
+                    <span class="font-display text-xs font-semibold"
+                      >{{ currentFrame.mix[m.key] }}%</span
+                    >
                   </div>
                 </div>
               </div>
@@ -174,8 +181,15 @@ onBeforeUnmount(stop)
           </p>
 
           <div class="mt-8 flex h-52 items-end gap-3">
-            <div v-for="(f, i) in frames" :key="`bar-${f.time}`" class="flex flex-1 flex-col items-center gap-2">
-              <span class="font-display text-xs font-semibold" :class="i === index ? 'text-ink' : 'text-ink-muted'">
+            <div
+              v-for="(f, i) in frames"
+              :key="`bar-${f.time}`"
+              class="flex flex-1 flex-col items-center gap-2"
+            >
+              <span
+                class="font-display text-xs font-semibold"
+                :class="i === index ? 'text-ink' : 'text-ink-muted'"
+              >
                 {{ f.outlets }}
               </span>
               <div
@@ -193,8 +207,8 @@ onBeforeUnmount(stop)
           </div>
 
           <p class="mt-6 border-t border-hairline pt-4 text-xs leading-relaxed text-ink-muted">
-            A narrativa começou política, virou econômica e só depois incorporou o ângulo social — um
-            padrão recorrente em pautas de tributação.
+            A narrativa começou política, virou econômica e só depois incorporou o ângulo social —
+            um padrão recorrente em pautas de tributação.
           </p>
         </PCard>
       </div>

@@ -62,7 +62,12 @@ const markSize = computed(() => `${props.size}px`)
       />
 
       <!-- espectro refratado -->
-      <g stroke-width="20" stroke-linecap="round" :filter="animated ? `url(#${glowId})` : null" opacity="0.55">
+      <g
+        stroke-width="20"
+        stroke-linecap="round"
+        :filter="animated ? `url(#${glowId})` : null"
+        opacity="0.55"
+      >
         <path d="M314 240 L500 150" stroke="#6F9BFF" />
         <path d="M314 240 L504 224" stroke="#8B5CF6" />
         <path d="M314 240 L504 296" stroke="#FF3B5C" />

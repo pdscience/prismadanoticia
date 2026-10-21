@@ -13,7 +13,9 @@ import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
 import ScoreRing from '@/components/ui/ScoreRing.vue'
-import { DNA_AXES, ENGINE_PIPELINE, SAMPLE_ANALYSIS, analyzeUrl, dnaAverage } from '@/data/prisma'
+import { DNA_AXES, ENGINE_PIPELINE, SAMPLE_ANALYSIS, frame } from '@/data'
+import { analyzeUrl } from '@/lib/analysis'
+import { dnaAverage } from '@/lib/radar'
 
 const route = useRoute()
 const router = useRouter()
@@ -55,7 +57,6 @@ async function runAnalysis(url) {
 
   for (let i = 0; i < ENGINE_PIPELINE.length; i += 1) {
     activeStep.value = i
-    // eslint-disable-next-line no-await-in-loop
     await new Promise((resolve) => setTimeout(resolve, 260))
   }
 
@@ -103,8 +104,8 @@ onMounted(() => {
           Analisar uma <span class="text-gradient">notícia</span>
         </h1>
         <p class="mx-auto mt-4 max-w-xl text-base text-ink-muted">
-          Cole o link. O Engine extrai o texto, descobre o tema, compara coberturas e devolve o DNA da
-          notícia com explicação para cada indicador.
+          Cole o link. O Engine extrai o texto, descobre o tema, compara coberturas e devolve o DNA
+          da notícia com explicação para cada indicador.
         </p>
 
         <form class="mt-8 flex flex-col gap-3 sm:flex-row" @submit.prevent="submit">
@@ -168,8 +169,12 @@ onMounted(() => {
             <div class="max-w-2xl">
               <div class="flex flex-wrap items-center gap-2">
                 <PBadge color="#8B5CF6">{{ analysis.topic }}</PBadge>
-                <PBadge color="#6F9BFF">Enquadramento {{ analysis.dominantFrame }}</PBadge>
-                <span class="text-xs text-ink-muted">{{ analysis.readingTime }} min de leitura</span>
+                <PBadge color="#6F9BFF"
+                  >Enquadramento {{ frame(analysis.dominantFrame).label }}</PBadge
+                >
+                <span class="text-xs text-ink-muted"
+                  >{{ analysis.readingTime }} min de leitura</span
+                >
               </div>
               <h2 class="mt-4 text-2xl leading-snug">{{ analysis.title }}</h2>
               <p class="mt-3 text-sm text-ink-muted">
@@ -206,7 +211,15 @@ onMounted(() => {
           <PCard accent="#8B5CF6" class="lg:col-span-2">
             <div class="flex items-center gap-2">
               <span class="grid h-8 w-8 place-items-center rounded-lg bg-prism/15 text-prism-soft">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                >
                   <path d="M5 6h14M5 11h14M5 16h9" />
                 </svg>
               </span>
@@ -273,7 +286,8 @@ onMounted(() => {
                   to="#6F9BFF"
                 />
                 <p class="flex-1 text-xs leading-relaxed text-ink-muted">
-                  Considera quantas vozes distintas aparecem e se há contraditório explícito no texto.
+                  Considera quantas vozes distintas aparecem e se há contraditório explícito no
+                  texto.
                 </p>
               </div>
             </PCard>
@@ -338,7 +352,15 @@ onMounted(() => {
                   class="mt-0.5 grid h-4.5 w-4.5 shrink-0 place-items-center rounded-full"
                   :class="signal.ok ? 'bg-mint/18 text-mint' : 'bg-energy/18 text-energy'"
                 >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  >
                     <path v-if="signal.ok" d="M5 13l4 4L19 7" />
                     <path v-else d="M12 7v7M12 17.5v.5" />
                   </svg>
@@ -366,7 +388,9 @@ onMounted(() => {
               >
                 <p class="text-sm font-medium text-ink">{{ item.title }}</p>
                 <p class="mt-1 text-xs text-ink-muted">{{ item.text }}</p>
-                <span class="mt-3 inline-block text-xs text-electric-soft transition-transform group-hover:translate-x-1">
+                <span
+                  class="mt-3 inline-block text-xs text-electric-soft transition-transform group-hover:translate-x-1"
+                >
                   Abrir →
                 </span>
               </RouterLink>

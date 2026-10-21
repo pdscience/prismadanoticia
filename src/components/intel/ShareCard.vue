@@ -5,7 +5,8 @@
  */
 import { computed, ref } from 'vue'
 
-import { DNA_AXES, radarPoint, radarPolygon } from '@/data/prisma'
+import { DNA_AXES } from '@/data'
+import { radarPoint, radarPolygon } from '@/lib/radar'
 
 const props = defineProps({
   dna: { type: Object, required: true },
@@ -37,11 +38,19 @@ function point(index, value) {
 const radarPoints = computed(() => radarPolygon(props.dna, { center: CENTER, radius: RADIUS }))
 
 const outlinePoints = computed(() =>
-  DNA_AXES.map((_, i) => point(i, 100).map((n) => n.toFixed(1)).join(',')).join(' '),
+  DNA_AXES.map((_, i) =>
+    point(i, 100)
+      .map((n) => n.toFixed(1))
+      .join(','),
+  ).join(' '),
 )
 
 const midPoints = computed(() =>
-  DNA_AXES.map((_, i) => point(i, 50).map((n) => n.toFixed(1)).join(',')).join(' '),
+  DNA_AXES.map((_, i) =>
+    point(i, 50)
+      .map((n) => n.toFixed(1))
+      .join(','),
+  ).join(' '),
 )
 
 async function download() {
@@ -108,7 +117,12 @@ async function copyText() {
 <template>
   <div class="space-y-4">
     <div class="overflow-hidden rounded-[var(--radius-card)] border border-hairline">
-      <svg ref="svgEl" viewBox="0 0 1080 1080" xmlns="http://www.w3.org/2000/svg" class="block w-full">
+      <svg
+        ref="svgEl"
+        viewBox="0 0 1080 1080"
+        xmlns="http://www.w3.org/2000/svg"
+        class="block w-full"
+      >
         <defs>
           <linearGradient id="sc-bg" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stop-color="#0B1236" />
@@ -125,7 +139,13 @@ async function copyText() {
             <stop offset="1" stop-color="#2D6BFF" stop-opacity="0.12" />
           </radialGradient>
           <pattern id="sc-grid" width="60" height="60" patternUnits="userSpaceOnUse">
-            <path d="M60 0H0v60" fill="none" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1" />
+            <path
+              d="M60 0H0v60"
+              fill="none"
+              stroke="#FFFFFF"
+              stroke-opacity="0.05"
+              stroke-width="1"
+            />
           </pattern>
         </defs>
 
@@ -142,18 +162,45 @@ async function copyText() {
           <path d="M74 54 L120 62" stroke="#FF3B5C" stroke-width="6" stroke-linecap="round" />
           <path d="M74 54 L116 80" stroke="#FFC24B" stroke-width="6" stroke-linecap="round" />
           <path d="M58 18 L86 82 L30 82 Z" fill="#8B5CF6" fill-opacity="0.1" />
-          <path d="M58 18 L86 82 L30 82 Z" fill="none" stroke="url(#sc-accent)" stroke-width="6" stroke-linejoin="round" />
-          <text x="146" y="48" fill="#F2F5FF" font-family="Space Grotesk, sans-serif" font-size="34" font-weight="600">
+          <path
+            d="M58 18 L86 82 L30 82 Z"
+            fill="none"
+            stroke="url(#sc-accent)"
+            stroke-width="6"
+            stroke-linejoin="round"
+          />
+          <text
+            x="146"
+            y="48"
+            fill="#F2F5FF"
+            font-family="Space Grotesk, sans-serif"
+            font-size="34"
+            font-weight="600"
+          >
             PRISMA DA NOTÍCIA
           </text>
-          <text x="146" y="82" fill="#9AA6C9" font-family="Inter, sans-serif" font-size="22" letter-spacing="4">
+          <text
+            x="146"
+            y="82"
+            fill="#9AA6C9"
+            font-family="Inter, sans-serif"
+            font-size="22"
+            letter-spacing="4"
+          >
             UMA NOTÍCIA. VÁRIOS ÂNGULOS.
           </text>
         </g>
 
         <line x1="80" y1="212" x2="1000" y2="212" stroke="#FFFFFF" stroke-opacity="0.12" />
 
-        <text x="80" y="308" fill="#F2F5FF" font-family="Space Grotesk, sans-serif" font-size="78" font-weight="700">
+        <text
+          x="80"
+          y="308"
+          fill="#F2F5FF"
+          font-family="Space Grotesk, sans-serif"
+          font-size="78"
+          font-weight="700"
+        >
           DNA da Notícia
         </text>
         <text x="80" y="358" fill="#9AA6C9" font-family="Inter, sans-serif" font-size="26">
@@ -162,13 +209,33 @@ async function copyText() {
 
         <!-- métricas destacadas -->
         <g font-family="Space Grotesk, sans-serif">
-          <g v-for="(item, i) in featured" :key="item.key" :transform="`translate(80 ${450 + i * 152})`">
-            <text x="0" y="0" fill="#9AA6C9" font-family="Inter, sans-serif" font-size="26" letter-spacing="3">
+          <g
+            v-for="(item, i) in featured"
+            :key="item.key"
+            :transform="`translate(80 ${450 + i * 152})`"
+          >
+            <text
+              x="0"
+              y="0"
+              fill="#9AA6C9"
+              font-family="Inter, sans-serif"
+              font-size="26"
+              letter-spacing="3"
+            >
               {{ item.label.toUpperCase() }}
             </text>
-            <text x="0" y="76" :fill="item.color" font-size="86" font-weight="700">{{ item.value }}</text>
+            <text x="0" y="76" :fill="item.color" font-size="86" font-weight="700">
+              {{ item.value }}
+            </text>
             <rect x="230" y="46" width="280" height="12" rx="6" fill="#FFFFFF" fill-opacity="0.1" />
-            <rect x="230" y="46" :width="(item.value / 100) * 280" height="12" rx="6" :fill="item.color" />
+            <rect
+              x="230"
+              y="46"
+              :width="(item.value / 100) * 280"
+              height="12"
+              rx="6"
+              :fill="item.color"
+            />
           </g>
         </g>
 
@@ -176,7 +243,13 @@ async function copyText() {
         <g transform="translate(628 448)">
           <polygon :points="outlinePoints" fill="none" stroke="#FFFFFF" stroke-opacity="0.14" />
           <polygon :points="midPoints" fill="none" stroke="#FFFFFF" stroke-opacity="0.09" />
-          <polygon :points="radarPoints" fill="url(#sc-fill)" stroke="url(#sc-accent)" stroke-width="4" stroke-linejoin="round" />
+          <polygon
+            :points="radarPoints"
+            fill="url(#sc-fill)"
+            stroke="url(#sc-accent)"
+            stroke-width="4"
+            stroke-linejoin="round"
+          />
           <circle
             v-for="(axis, i) in DNA_AXES"
             :key="axis.key"
@@ -191,7 +264,14 @@ async function copyText() {
         <text x="80" y="1006" fill="#9AA6C9" font-family="Inter, sans-serif" font-size="26">
           prismadanoticia.com.br
         </text>
-        <text x="1000" y="1006" text-anchor="end" fill="#FFC24B" font-family="Inter, sans-serif" font-size="26">
+        <text
+          x="1000"
+          y="1006"
+          text-anchor="end"
+          fill="#FFC24B"
+          font-family="Inter, sans-serif"
+          font-size="26"
+        >
           Análise gerada pelo Prisma Engine
         </text>
       </svg>
@@ -204,7 +284,15 @@ async function copyText() {
         :disabled="busy"
         @click="download"
       >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
           <path d="M12 3v12M7 11l5 5 5-5M5 20h14" />
         </svg>
         {{ busy ? 'Gerando...' : 'Baixar PNG 1080×1080' }}
@@ -215,7 +303,15 @@ async function copyText() {
         class="inline-flex h-10 items-center gap-2 rounded-full border border-hairline px-5 text-sm text-ink-muted transition-colors hover:text-ink"
         @click="copyText"
       >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        >
           <rect x="9" y="9" width="11" height="11" rx="2.5" />
           <path d="M15 5H6.5A1.5 1.5 0 0 0 5 6.5V15" />
         </svg>

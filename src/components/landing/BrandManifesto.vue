@@ -1,6 +1,6 @@
 <script setup>
 /** Cap. 1 — O DNA da Marca: a frase que é o coração da comunicação + arquétipos. */
-import { ARCHETYPES } from '@/data/prisma'
+import { ARCHETYPES } from '@/data'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
@@ -10,11 +10,17 @@ const { root } = useReveal()
   <section ref="root" class="relative overflow-hidden py-24">
     <div class="container-prisma">
       <div class="relative mx-auto max-w-4xl text-center">
-        <p data-reveal class="font-display text-[0.7rem] uppercase tracking-[0.34em] text-ink-muted">
+        <p
+          data-reveal
+          class="font-display text-[0.7rem] uppercase tracking-[0.34em] text-ink-muted"
+        >
           O DNA da marca
         </p>
 
-        <blockquote data-reveal class="mt-8 font-display text-3xl leading-tight sm:text-4xl md:text-5xl">
+        <blockquote
+          data-reveal
+          class="mt-8 font-display text-3xl leading-tight sm:text-4xl md:text-5xl"
+        >
           <span class="text-ink">A notícia não muda.</span><br />
           <span class="text-gradient">O que muda é o ângulo</span><br />
           <span class="text-ink">pelo qual ela é apresentada.</span>

@@ -6,7 +6,9 @@
  */
 import { computed, ref } from 'vue'
 
-import { POLARIZATION_THEMES, STATES, dominantTheme, polarizationColor } from '@/data/prisma'
+import { POLARIZATION_THEMES, STATES } from '@/data'
+import { polarizationColor } from '@/lib/colors'
+import { dominantTheme } from '@/lib/intel'
 
 const props = defineProps({
   /** 'dominante' | 'polarizacao' | chave de tema */
@@ -132,9 +134,7 @@ function handleSelect(state) {
         class="pointer-events-none absolute right-0 top-0 w-56 rounded-2xl glass p-4 text-left"
       >
         <p class="font-display text-sm font-semibold">{{ hoveredState.name }}</p>
-        <p class="mt-1 text-xs text-ink-muted">
-          {{ hoveredState.outlets }} veículos monitorados
-        </p>
+        <p class="mt-1 text-xs text-ink-muted">{{ hoveredState.outlets }} veículos monitorados</p>
         <div class="mt-3 space-y-1.5">
           <div
             v-for="theme in POLARIZATION_THEMES"

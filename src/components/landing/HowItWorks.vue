@@ -2,7 +2,7 @@
 /** Seção "Como Funciona" — quatro cartões animados (Brand Book Cap. 3). */
 import PCard from '@/components/ui/PCard.vue'
 import SectionHeading from '@/components/ui/SectionHeading.vue'
-import { HOW_IT_WORKS } from '@/data/prisma'
+import { HOW_IT_WORKS } from '@/data'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
@@ -37,9 +37,22 @@ const icons = {
           <div class="flex items-start justify-between">
             <span
               class="grid h-12 w-12 place-items-center rounded-2xl border"
-              :style="{ borderColor: `${item.accent}44`, background: `${item.accent}14`, color: item.accent }"
+              :style="{
+                borderColor: `${item.accent}44`,
+                background: `${item.accent}14`,
+                color: item.accent,
+              }"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path :d="icons[item.icon]" />
               </svg>
             </span>
