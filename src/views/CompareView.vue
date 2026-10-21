@@ -15,7 +15,6 @@ const { root } = useReveal()
 
 const comparison = ref(COMPARISON)
 const query = ref(COMPARISON.topic)
-const searched = ref(COMPARISON.topic)
 const selected = ref(COMPARISON.rows[0].outlet)
 
 const rows = computed(() => comparison.value.rows)
@@ -24,6 +23,7 @@ const current = computed(() => rows.value.find((r) => r.outlet === selected.valu
 /** Média do cluster por eixo — a "cobertura média" do fato. */
 const clusterAverage = computed(() => {
   const acc = {}
+  if (!rows.value.length) return acc
   DNA_AXES.forEach((axis) => {
     acc[axis.key] = Math.round(
       rows.value.reduce((sum, r) => sum + r.dna[axis.key], 0) / rows.value.length,
@@ -33,18 +33,18 @@ const clusterAverage = computed(() => {
 })
 
 /** Maior divergência entre veículos por eixo. */
-const divergences = computed(() =>
-  DNA_AXES.map((axis) => {
+const divergences = computed(() => {
+  if (!rows.value.length) return []
+  return DNA_AXES.map((axis) => {
     const values = rows.value.map((r) => ({ outlet: r.outlet, value: r.dna[axis.key] }))
     const min = values.reduce((a, b) => (b.value < a.value ? b : a))
     const max = values.reduce((a, b) => (b.value > a.value ? b : a))
     return { axis, min, max, spread: max.value - min.value }
-  }).sort((a, b) => b.spread - a.spread),
-)
+  }).sort((a, b) => b.spread - a.spread)
+})
 
 async function search() {
   const term = query.value.trim() || COMPARISON.topic
-  searched.value = term
   comparison.value = await fetchComparison(term)
   selected.value = comparison.value.rows[0]?.outlet ?? ''
 }
@@ -61,11 +61,11 @@ onMounted(async () => {
       <header class="mx-auto max-w-3xl text-center">
         <PBadge color="#2D6BFF" dot>Cap. 5 · Comparação Inteligente</PBadge>
         <h1 class="mt-6 text-4xl leading-tight sm:text-5xl">
-          O mesmo fato, <span class="text-gradient">quatro ângulos.</span>
+          O mesmo fato, <span class="text-gradient">vários ângulos.</span>
         </h1>
         <p class="mx-auto mt-4 max-w-xl text-base text-ink-muted">
-          Pesquise um tema. A IA encontra matérias semelhantes, organiza por veículo e mostra qual
-          destaque cada um escolheu.
+          Pesquise um tema. O Engine recupera o cluster de matérias semelhantes, organiza por
+          veículo e mostra qual destaque cada um escolheu.
         </p>
 
         <form class="mt-8 flex flex-col gap-3 sm:flex-row" @submit.prevent="search">
@@ -83,10 +83,24 @@ onMounted(async () => {
 
       <!-- contexto do cluster -->
       <div class="mt-12 flex flex-wrap items-center justify-center gap-3">
-        <PBadge color="#8B5CF6">{{ searched }}</PBadge>
+        <PBadge color="#8B5CF6">{{ comparison.topic }}</PBadge>
         <PBadge color="#6F9BFF">{{ comparison.window }}</PBadge>
         <PBadge color="#FFC24B">{{ comparison.clusterSize }} matérias no cluster</PBadge>
+        <PBadge v-if="comparison.demo" color="#FFC24B">dados de demonstração</PBadge>
       </div>
+
+      <p
+        v-if="
+          comparison.demo &&
+          comparison.requestedTopic &&
+          comparison.requestedTopic.toLowerCase() !== comparison.topic.toLowerCase()
+        "
+        class="mx-auto mt-4 max-w-2xl text-center text-xs text-ink-muted"
+      >
+        Não encontramos um cluster para “{{ comparison.requestedTopic }}”. Exibindo o exemplo de “{{
+          comparison.topic
+        }}”.
+      </p>
 
       <!-- tabela de comparação -->
       <PCard data-reveal accent="#2D6BFF" :padded="false" class="mt-10 overflow-hidden">
@@ -138,7 +152,7 @@ onMounted(async () => {
 
       <!-- radar comparativo + divergências -->
       <div class="mt-5 grid gap-5 lg:grid-cols-[1.15fr_1fr]">
-        <PCard data-reveal accent="#8B5CF6" class="p-8">
+        <PCard v-if="current" data-reveal accent="#8B5CF6" class="p-8">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-lg">{{ current.outlet }} vs. média do cluster</h2>
             <div class="flex gap-1.5">
@@ -204,9 +218,9 @@ onMounted(async () => {
           <PCard data-reveal accent="#FFC24B">
             <h2 class="text-lg">Leitura do Prisma</h2>
             <p class="mt-3 text-sm leading-relaxed text-ink-muted">
-              O cluster mostra um fato tratado por quatro enquadramentos distintos. Os veículos
-              econômicos sustentam mais dados; os de perfil crítico usam linguagem mais intensa e
-              ampliam o ângulo social.
+              O cluster revela como o mesmo fato ganha ênfases distintas: alguns veículos priorizam
+              dados e impacto fiscal, outros ampliam o ângulo social ou crítico. A comparação é
+              descritiva, não um ranking de qualidade.
             </p>
             <div class="mt-5 flex flex-wrap gap-3">
               <PButton to="/blindspot" variant="outline" size="sm">Ver quem ficou de fora</PButton>
@@ -216,8 +230,11 @@ onMounted(async () => {
         </div>
       </div>
 
-      <p class="mt-8 text-center text-xs text-ink-muted">
-        Análise de referência: “{{ SAMPLE_ANALYSIS.title }}”
+      <p v-if="comparison.demo" class="mt-8 text-center text-xs text-ink-muted">
+        Exemplo de referência: “{{ SAMPLE_ANALYSIS.title }}”
+      </p>
+      <p v-else class="mt-8 text-center text-xs text-ink-muted">
+        Cluster “{{ comparison.topic }}” · {{ comparison.clusterSize }} matérias analisadas.
       </p>
     </div>
   </div>

@@ -70,6 +70,9 @@ tests/unit/                   # Testes Vitest de dados e helpers
 | `/tecnologia` | Cap. 8, 9, 10, 11, 12 | Stack, Prisma Engine, Banco Inteligente, PWA, Extensão Chrome                            |
 | `/marca`      | Cap. 1, 2, 13         | DNA da marca, arquétipos, logo, paleta, tipografia, Pitch Deck                           |
 
+A descrição detalhada de cada tela, com fonte de dados, estados de demonstração e limites, está em
+[`PAGINAS.md`](./PAGINAS.md).
+
 ## Identidade visual
 
 **Paleta Premium**
@@ -105,7 +108,8 @@ Radar de seis eixos, cada um com explicação própria:
 ## PWA
 
 Manifest e service worker gerados no build (`vite-plugin-pwa`): instalável, modo escuro
-como padrão da marca, ícones próprios e cache offline das análises visitadas.
+como padrão da marca, ícones próprios e cache offline do app shell, assets e fontes. As consultas
+de análise novas ao backend continuam exigindo rede; leitura offline de análises está no roadmap.
 
 ## Deploy
 

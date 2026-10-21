@@ -2,6 +2,7 @@
 import { RouterLink } from 'vue-router'
 
 import BrandLogo from '@/components/brand/BrandLogo.vue'
+import { useMockData } from '@/lib/insforge'
 
 const groups = [
   {
@@ -97,7 +98,7 @@ const year = new Date().getFullYear()
         <p>© {{ year }} Prisma da Notícia. Todos os ângulos reservados.</p>
         <p class="flex items-center gap-2">
           <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-mint" />
-          Engine operando · dados de demonstração
+          Engine operando · {{ useMockData ? 'dados de demonstração' : 'dados do InsForge' }}
         </p>
       </div>
     </div>

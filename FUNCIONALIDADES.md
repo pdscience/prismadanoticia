@@ -7,6 +7,9 @@
 
 **Produção:** https://9aqdv427.insforge.site
 
+A visão tela a tela, com fonte de dados e limites de cada rota, está em
+[`PAGINAS.md`](./PAGINAS.md).
+
 ---
 
 ## 1. Visão geral
@@ -111,27 +114,31 @@ Function `analyze-url`. Uma falha real não é substituída por resultado fictí
 - Atalhos para BlindSpot e Replay.
 
 **Fonte dos dados:** `analysis_feed` filtrado por `topic_slug`. Se o tema não tiver dados
-suficientes, a tela usa a fixture local para preservar a navegação.
+suficientes, a tela usa a fixture local, sinaliza “dados de demonstração” e informa qual tema de
+exemplo está sendo exibido.
 
 ### 2.4 BlindSpot Brasil (`/blindspot`)
 
 - Busca por tema.
-- Filtro de período: 7, 15, 30 ou 90 dias.
+- Seletor de silêncio mínimo: 7, 15, 30 ou 90 dias.
 - Indicador de confiabilidade crescente conforme o período aumenta.
 - Lista de veículos que cobriram o tema, com volume de matérias.
-- Lista de veículos que não publicaram no período, com alcance, severidade e última menção.
+- Lista de veículos sem publicação por pelo menos o período selecionado, com alcance,
+  severidade e última menção.
 - Barras de subtemas pouco explorados.
-- Aviso metodológico explícito: ausência de cobertura não implica intenção editorial.
+- Aviso metodológico explícito: silêncio prolongado não implica intenção editorial.
 - Atalhos para Comparação e Mapa.
 
 **Fonte dos dados:** `blindspot_reports`, `blindspot_coverage`, `blindspot_gaps` e
-`blindspot_subthemes`, com fallback local.
+`blindspot_subthemes`, com fallback local. Os volumes de cobertura e os subtemas vêm do relatório
+de referência (30 dias no seed); o seletor de período define o tempo mínimo de silêncio usado para
+filtrar a lista de blindspots.
 
 ### 2.5 Prisma Replay (`/replay`)
 
 - Player com play/pause e avanço automático entre quadros.
 - Linha do tempo arrastável.
-- Cinco quadros com horário, rótulo, veículos, enquadramento dominante e sentimento.
+- Quadros com horário, rótulo, veículos, enquadramento dominante e sentimento.
 - Descrição da evolução da narrativa em cada quadro.
 - Barra de mistura de enquadramentos.
 - Gráfico de expansão da cobertura por número de veículos.
@@ -154,7 +161,8 @@ suficientes, a tela usa a fixture local para preservar a navegação.
 - Total de veículos monitorados.
 - Contexto de uso para imprensa, universidades, institutos e API.
 
-**Fonte dos dados:** `state_metrics`, com fallback local.
+**Fonte dos dados:** `state_metrics`, com fallback local. O cartograma, o painel do estado, o
+ranking e a mistura nacional usam o mesmo conjunto carregado por `fetchStates()`.
 
 ### 2.7 Tecnologia (`/tecnologia`)
 
@@ -220,7 +228,8 @@ Vitrine conceitual da arquitetura:
 - **Títulos de página por rota:** atualização automática de `document.title`.
 - **PWA:** manifest, ícones, instalação e cache do app shell/fontes.
 - **Fallback de dados:** telas de leitura usam fixtures quando o backend falha, sem quebrar a
-  navegação.
+  navegação. Comparação, BlindSpot e Replay exibem o selo “dados de demonstração”; quando a busca
+  não encontra um cluster ou relatório, a tela informa qual exemplo está sendo mostrado.
 - **Acessibilidade:** rótulos ARIA, `sr-only`, navegação por teclado e tabelas semânticas.
 - **Cartão viral:** SVG com radar, exportação em PNG e cópia de texto para redes sociais.
 

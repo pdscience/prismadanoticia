@@ -157,7 +157,7 @@ const { root } = useReveal()
               eyebrow="Cap. 11 · Aplicativo"
               title="Um PWA que parece"
               highlight="nativo."
-              description="Instalável, rápido e funcional mesmo sem rede. O service worker guarda suas últimas análises."
+              description="Instalável, rápido e com o app shell disponível offline. As consultas de análise ainda exigem rede."
             />
             <div class="mt-8 grid gap-4 sm:grid-cols-2">
               <div
@@ -170,6 +170,10 @@ const { root } = useReveal()
                 <p class="mt-1.5 text-xs leading-relaxed text-ink-muted">{{ f.detail }}</p>
               </div>
             </div>
+            <p class="mt-4 text-xs leading-relaxed text-ink-muted">
+              Visão de produto: notificações, favoritos e leitura offline de análises ainda não
+              estão publicados.
+            </p>
           </div>
 
           <!-- mockup de telefone -->

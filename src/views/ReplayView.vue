@@ -22,7 +22,7 @@ const playing = ref(false)
 let timer = null
 
 const currentFrame = computed(() => frames.value[index.value])
-const maxOutlets = computed(() => Math.max(...frames.value.map((f) => f.outlets)))
+const maxOutlets = computed(() => Math.max(1, ...frames.value.map((f) => f.outlets)))
 
 // Enquadramentos da mistura, na ordem de exibição, lendo as cores canônicas.
 const mixKeys = ['politica', 'economia', 'social', 'seguranca'].map((key) => ({
@@ -74,7 +74,7 @@ onBeforeUnmount(stop)
       </header>
 
       <!-- player -->
-      <PCard data-reveal accent="#FFC24B" class="mt-12 p-8">
+      <PCard v-if="currentFrame" data-reveal accent="#FFC24B" class="mt-12 p-8">
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div class="flex items-center gap-3">
             <button
@@ -98,10 +98,11 @@ onBeforeUnmount(stop)
             </div>
           </div>
 
-          <div class="flex items-center gap-3">
+          <div class="flex flex-wrap items-center gap-3">
             <PBadge color="#6F9BFF">{{ currentFrame.outlets }} veículos</PBadge>
             <PBadge color="#B794FF">{{ currentFrame.dominantFrame }}</PBadge>
             <PBadge color="#FF3B5C">{{ currentFrame.sentiment }}</PBadge>
+            <PBadge v-if="replay.demo" color="#FFC24B">dados de demonstração</PBadge>
           </div>
         </div>
 
@@ -143,9 +144,15 @@ onBeforeUnmount(stop)
           </ol>
         </div>
       </PCard>
+      <PCard v-else data-reveal accent="#FFC24B" class="mt-12">
+        <h2 class="text-lg">Nenhum quadro disponível</h2>
+        <p class="mt-2 text-sm text-ink-muted">
+          Não há eventos de replay para este tema. Tente novamente mais tarde.
+        </p>
+      </PCard>
 
       <!-- quadro atual -->
-      <div class="mt-5 grid gap-5 lg:grid-cols-[1.1fr_1fr]">
+      <div v-if="currentFrame" class="mt-5 grid gap-5 lg:grid-cols-[1.1fr_1fr]">
         <PCard data-reveal accent="#8B5CF6">
           <Transition name="route-fade" mode="out-in">
             <div :key="currentFrame.time">

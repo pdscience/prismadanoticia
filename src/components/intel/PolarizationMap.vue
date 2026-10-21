@@ -13,6 +13,8 @@ import { dominantTheme } from '@/lib/intel'
 const props = defineProps({
   /** 'dominante' | 'polarizacao' | chave de tema */
   mode: { type: String, default: 'dominante' },
+  /** Dados por UF; o padrão mantém a landing independente do backend. */
+  states: { type: Array, default: () => STATES },
   compact: { type: Boolean, default: false },
   interactive: { type: Boolean, default: true },
 })
@@ -31,12 +33,12 @@ const hovered = ref(null)
 
 /** Estado sob o cursor, resolvido uma única vez por render. */
 const hoveredState = computed(() =>
-  hovered.value ? STATES.find((s) => s.uf === hovered.value) : null,
+  hovered.value ? props.states.find((s) => s.uf === hovered.value) : null,
 )
 
 const maxShare = computed(() => {
   if (!POLARIZATION_THEMES.some((t) => t.key === props.mode)) return 100
-  return Math.max(1, ...STATES.map((s) => s.themes[props.mode] ?? 0))
+  return Math.max(1, ...props.states.map((s) => s.themes[props.mode] ?? 0))
 })
 
 /**
@@ -44,7 +46,7 @@ const maxShare = computed(() => {
  * geometria e as cores das 27 UFs a cada mudança de hover.
  */
 const cells = computed(() =>
-  STATES.map((state) => {
+  props.states.map((state) => {
     const x = state.col * (CELL + GAP)
     const y = state.row * (CELL + GAP)
 

@@ -38,8 +38,14 @@ const reliability = computed(() => {
   return map[period.value]
 })
 
+function daysWithoutMention(value) {
+  const match = /(\d+)\s+dias?/i.exec(String(value))
+  return match ? Number(match[1]) : Number.POSITIVE_INFINITY
+}
+
+/** O período define o tempo mínimo de silêncio para um veículo entrar na lista. */
 const missing = computed(() =>
-  period.value >= 30 ? data.value.missing : data.value.missing.slice(0, period.value >= 15 ? 3 : 2),
+  data.value.missing.filter((item) => daysWithoutMention(item.lastMention) >= period.value),
 )
 
 async function investigate() {
@@ -89,6 +95,25 @@ onMounted(async () => {
             {{ p.label }}
           </button>
         </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-2">
+          <PBadge color="#8B5CF6">{{ data.topic }}</PBadge>
+          <PBadge color="#6F9BFF">{{ data.window }}</PBadge>
+          <PBadge v-if="data.demo" color="#FFC24B">dados de demonstração</PBadge>
+        </div>
+
+        <p
+          v-if="
+            data.demo &&
+            data.requestedTopic &&
+            data.requestedTopic.toLowerCase() !== data.topic.toLowerCase()
+          "
+          class="max-w-2xl text-center text-xs text-ink-muted"
+        >
+          Não encontramos um relatório para “{{ data.requestedTopic }}”. Exibindo o exemplo de “{{
+            data.topic
+          }}”.
+        </p>
       </div>
 
       <!-- aviso metodológico -->
@@ -112,8 +137,8 @@ onMounted(async () => {
           </span>
           <p class="flex-1 text-sm leading-relaxed text-ink-muted">
             <strong class="text-ink">Regra metodológica.</strong>
-            {{ data.note }} Período selecionado:
-            <strong class="text-ink">{{ period }} dias</strong>.
+            {{ data.note }} A lista de blindspots usa
+            <strong class="text-ink">{{ period }} dias</strong> como tempo mínimo de silêncio.
           </p>
           <div class="text-center">
             <span class="font-display text-2xl font-semibold text-insight">{{ reliability }}%</span>
@@ -148,11 +173,17 @@ onMounted(async () => {
         <!-- não cobriram -->
         <PCard data-reveal accent="#FF3B5C">
           <div class="flex items-center justify-between gap-3">
-            <h2 class="text-lg">Não publicaram no período</h2>
+            <h2 class="text-lg">Silêncio de pelo menos {{ period }} dias</h2>
             <PBadge color="#FF3B5C">{{ missing.length }} blindspots</PBadge>
           </div>
 
-          <ul class="mt-6 space-y-3">
+          <p
+            v-if="!missing.length"
+            class="mt-6 rounded-2xl border border-hairline p-4 text-sm text-ink-muted"
+          >
+            Nenhum veículo ficou sem publicar pelo período mínimo selecionado.
+          </p>
+          <ul v-else class="mt-6 space-y-3">
             <li
               v-for="m in missing"
               :key="m.outlet"
@@ -178,8 +209,8 @@ onMounted(async () => {
           </ul>
 
           <p class="mt-5 text-xs text-ink-muted">
-            Ausência de cobertura não implica intenção editorial — indica apenas que, no período
-            analisado, não houve publicação identificada sobre o tema.
+            Silêncio prolongado não implica intenção editorial — indica apenas que não houve
+            publicação identificada sobre o tema no intervalo mínimo selecionado.
           </p>
         </PCard>
       </div>

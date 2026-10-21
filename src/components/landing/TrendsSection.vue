@@ -11,7 +11,7 @@ import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
 const trends = ref(TRENDS)
-const maxOutlets = computed(() => Math.max(...trends.value.map((t) => t.outlets)))
+const maxOutlets = computed(() => Math.max(1, ...trends.value.map((t) => t.outlets)))
 
 onMounted(async () => {
   trends.value = await fetchTrends()

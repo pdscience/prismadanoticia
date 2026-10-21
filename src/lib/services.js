@@ -123,8 +123,10 @@ export function fetchComparison(topic = COMPARISON.topic) {
       if (!compared.length) throw new Error('Sem comparação para este tema')
       return {
         topic: rows[0].topic,
+        requestedTopic: topic,
         window: COMPARISON.window,
         clusterSize: rows[0].cluster_size ?? rows.length,
+        demo: false,
         rows: compared.map((row) => ({
           outlet: row.outlet,
           highlight: row.highlight,
@@ -135,7 +137,7 @@ export function fetchComparison(topic = COMPARISON.topic) {
         })),
       }
     },
-    () => COMPARISON,
+    () => ({ ...COMPARISON, requestedTopic: topic, demo: true }),
   )
 }
 
@@ -181,8 +183,10 @@ export function fetchBlindspot(topic = BLINDSPOT.topic) {
       const reportRow = ensure(report)
       return {
         topic: topicRow.label,
+        requestedTopic: topic,
         window: reportRow?.window_label ?? BLINDSPOT.window,
         note: reportRow?.note ?? BLINDSPOT.note,
+        demo: false,
         covered: ensure(coverage).map((row) => ({ outlet: row.outlet, articles: row.articles })),
         missing: ensure(gaps).map((row) => ({
           outlet: row.outlet,
@@ -196,7 +200,7 @@ export function fetchBlindspot(topic = BLINDSPOT.topic) {
         })),
       }
     },
-    () => BLINDSPOT,
+    () => ({ ...BLINDSPOT, requestedTopic: topic, demo: true }),
   )
 }
 
@@ -224,6 +228,8 @@ export function fetchReplay(topic = REPLAY.topic) {
 
       return {
         topic: topicRow.label,
+        requestedTopic: topic,
+        demo: false,
         frames: rows.map((row) => ({
           time: row.time_label,
           label: row.label,
@@ -235,7 +241,7 @@ export function fetchReplay(topic = REPLAY.topic) {
         })),
       }
     },
-    () => REPLAY,
+    () => ({ ...REPLAY, requestedTopic: topic, demo: true }),
   )
 }
 

@@ -23,7 +23,7 @@ const modes = [
 ]
 
 const mode = ref('dominante')
-const selected = ref(STATES.find((s) => s.uf === 'SP'))
+const selected = ref(STATES.find((s) => s.uf === 'SP') ?? STATES[0] ?? null)
 
 const ranking = computed(() =>
   [...states.value].sort((a, b) => b.polarization - a.polarization).slice(0, 6),
@@ -32,24 +32,25 @@ const ranking = computed(() =>
 const nationalMix = computed(() => {
   const totals = {}
   POLARIZATION_THEMES.forEach((t) => {
-    totals[t.key] = Math.round(
-      states.value.reduce((sum, s) => sum + s.themes[t.key], 0) / states.value.length,
-    )
+    totals[t.key] = states.value.length
+      ? Math.round(states.value.reduce((sum, s) => sum + s.themes[t.key], 0) / states.value.length)
+      : 0
   })
   return totals
 })
 
-const selectedThemes = computed(() =>
-  POLARIZATION_THEMES.map((t) => ({ ...t, value: selected.value.themes[t.key] })).sort(
+const selectedThemes = computed(() => {
+  if (!selected.value) return []
+  return POLARIZATION_THEMES.map((t) => ({ ...t, value: selected.value.themes[t.key] })).sort(
     (a, b) => b.value - a.value,
-  ),
-)
+  )
+})
 
 const totalOutlets = computed(() => states.value.reduce((sum, s) => sum + s.outlets, 0))
 
 onMounted(async () => {
   states.value = await fetchStates()
-  selected.value = states.value.find((s) => s.uf === 'SP') ?? states.value[0]
+  selected.value = states.value.find((s) => s.uf === 'SP') ?? states.value[0] ?? null
 })
 </script>
 
@@ -94,7 +95,7 @@ onMounted(async () => {
           </div>
 
           <div class="mt-6">
-            <PolarizationMap :mode="mode" @select="selected = $event" />
+            <PolarizationMap :states="states" :mode="mode" @select="selected = $event" />
           </div>
 
           <div
@@ -114,7 +115,7 @@ onMounted(async () => {
 
         <div class="space-y-5">
           <!-- estado selecionado -->
-          <PCard data-reveal accent="#2D6BFF">
+          <PCard v-if="selected" data-reveal accent="#2D6BFF">
             <div class="flex items-start justify-between gap-4">
               <div>
                 <h2 class="text-2xl">{{ selected.name }}</h2>
@@ -158,6 +159,12 @@ onMounted(async () => {
                 naquele estado.
               </p>
             </div>
+          </PCard>
+          <PCard v-else data-reveal accent="#2D6BFF">
+            <h2 class="text-lg">Nenhum estado disponível</h2>
+            <p class="mt-2 text-sm text-ink-muted">
+              O mapa não recebeu dados de cobertura por UF. Tente novamente mais tarde.
+            </p>
           </PCard>
 
           <!-- ranking -->
