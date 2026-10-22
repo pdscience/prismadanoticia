@@ -1,14 +1,16 @@
 <script setup>
 /**
  * MAPA DE POLARIZAÇÃO EM TEMPO REAL — o moat do PRISMA.
- * Cartograma do Brasil: cada UF é uma célula posicionada por geografia aproximada.
- * Mostra o tema dominante da cobertura e o nível de divergência de enquadramento.
+ * Mapa real do Brasil (OpenStreetMap) com as 27 UFs coloridas pelo tema
+ * dominante da cobertura, pelo índice de polarização ou por um tema específico.
  */
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
+import { BRAZIL_STATES } from '@/data/geo/brazil-states'
 import { POLARIZATION_THEMES, STATES } from '@/data'
-import { polarizationColor } from '@/lib/colors'
-import { dominantTheme } from '@/lib/intel'
+import { maxThemeShare, stateStyle, ufLabel } from '@/lib/mapdata'
 
 const props = defineProps({
   /** 'dominante' | 'polarizacao' | chave de tema */
@@ -21,137 +23,207 @@ const props = defineProps({
 
 const emit = defineEmits(['select'])
 
-const CELL = 54
-const GAP = 7
-const COLS = 8
-const ROWS = 8
-
-const width = COLS * (CELL + GAP)
-const height = ROWS * (CELL + GAP)
-
+const container = ref(null)
 const hovered = ref(null)
 
-/** Estado sob o cursor, resolvido uma única vez por render. */
-const hoveredState = computed(() =>
-  hovered.value ? props.states.find((s) => s.uf === hovered.value) : null,
-)
+/**
+ * Base cartográfica do OpenStreetMap. No tema escuro a camada de tiles
+ * recebe um filtro no CSS (ver `main.css`), preservando os dados do OSM.
+ */
+const TILE_CONFIG = {
+  url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+}
 
-const maxShare = computed(() => {
-  if (!POLARIZATION_THEMES.some((t) => t.key === props.mode)) return 100
-  return Math.max(1, ...props.states.map((s) => s.themes[props.mode] ?? 0))
+let map = null
+let tiles = null
+let observer = null
+/** Camada de uma UF por sigla. */
+const layers = new Map()
+
+/** Redesenha o mapa quando o container muda de tamanho. */
+function handleResize() {
+  map?.invalidateSize()
+}
+
+const byUf = computed(() => new Map(props.states.map((s) => [s.uf, s])))
+const maxShare = computed(() => maxThemeShare(props.states, props.mode))
+const hoveredState = computed(() =>
+  hovered.value ? (byUf.value.get(hovered.value) ?? null) : null,
+)
+const hoveredThemes = computed(() => {
+  if (!hoveredState.value) return []
+  return POLARIZATION_THEMES.map((t) => ({
+    ...t,
+    value: hoveredState.value.themes?.[t.key] ?? 0,
+  })).sort((a, b) => b.value - a.value)
 })
 
-/**
- * Dados de desenho de cada célula, memoizados por `mode`. Evita recalcular a
- * geometria e as cores das 27 UFs a cada mudança de hover.
- */
-const cells = computed(() =>
-  props.states.map((state) => {
-    const x = state.col * (CELL + GAP)
-    const y = state.row * (CELL + GAP)
+/** Estilo de preenchimento da UF no modo atual. */
+function styleFor(uf) {
+  const state = byUf.value.get(uf)
+  if (!state) {
+    return { color: '#3A4468', weight: 1, fillColor: '#1B2440', fillOpacity: 0.55 }
+  }
+  const { color, fillOpacity } = stateStyle(state, props.mode, maxShare.value)
+  return { color, weight: 1.2, fillColor: color, fillOpacity }
+}
 
-    let color
-    let alpha
-    let value
-
-    if (props.mode === 'dominante') {
-      const theme = dominantTheme(state)
-      color = theme.color
-      value = state.themes[theme.key]
-      alpha = 0.16 + (state.polarization / 100) * 0.62
-    } else if (props.mode === 'polarizacao') {
-      color = polarizationColor(state.polarization)
-      value = state.polarization
-      alpha = 0.18 + (state.polarization / 100) * 0.66
-    } else {
-      const theme = POLARIZATION_THEMES.find((t) => t.key === props.mode)
-      color = theme.color
-      value = state.themes[props.mode] ?? 0
-      alpha = 0.1 + (value / maxShare.value) * 0.78
+/** Reaplica cores, opacidades e rótulos quando o modo ou os dados mudam. */
+function refreshLayers() {
+  layers.forEach((layer, uf) => {
+    layer.setStyle(styleFor(uf))
+    const state = byUf.value.get(uf)
+    if (state) {
+      layer.setTooltipContent(ufLabel(state, props.mode, maxShare.value))
     }
-
-    return { state, x, y, color, alpha, value }
-  }),
-)
+  })
+}
 
 function handleSelect(state) {
   if (!props.interactive) return
   emit('select', state)
 }
+
+function buildMap() {
+  if (!container.value || map) return
+  // Sem dimensões reais não há mapa: evita erros em ambientes sem layout (testes).
+  if (!container.value.clientWidth) return
+
+  map = L.map(container.value, {
+    center: [-13, -52],
+    zoom: 4,
+    minZoom: 3,
+    maxZoom: 8,
+    zoomControl: false,
+    attributionControl: true,
+    scrollWheelZoom: false,
+    maxBounds: [
+      [-40, -85],
+      [10, -25],
+    ],
+    maxBoundsViscosity: 0.6,
+  })
+
+  // O painel de hover ocupa o canto superior direito; o zoom fica embaixo à esquerda.
+  L.control.zoom({ position: 'bottomleft' }).addTo(map)
+  setTiles()
+
+  const geoLayer = L.geoJSON(BRAZIL_STATES, {
+    style: (feature) => styleFor(feature.properties.sigla),
+    onEachFeature: (feature, layer) => {
+      const uf = feature.properties.sigla
+      layers.set(uf, layer)
+
+      layer.bindTooltip('', {
+        permanent: true,
+        direction: 'center',
+        className: 'prisma-uf-label',
+        interactive: false,
+      })
+
+      layer.on('mouseover', () => {
+        if (!props.interactive) return
+        hovered.value = uf
+        layer.setStyle({
+          weight: 2.4,
+          fillOpacity: Math.min(0.95, styleFor(uf).fillOpacity + 0.12),
+        })
+      })
+
+      layer.on('mouseout', () => {
+        if (!props.interactive) return
+        hovered.value = null
+        layer.setStyle(styleFor(uf))
+      })
+
+      layer.on('click', () => {
+        const state = byUf.value.get(uf)
+        if (state) handleSelect(state)
+      })
+    },
+  }).addTo(map)
+
+  // Enquadra o território brasileiro no container do mapa.
+  map.fitBounds(geoLayer.getBounds(), { padding: [8, 8] })
+
+  refreshLayers()
+}
+
+function setTiles() {
+  if (!map) return
+  if (tiles) map.removeLayer(tiles)
+  tiles = L.tileLayer(TILE_CONFIG.url, {
+    attribution: TILE_CONFIG.attribution,
+    maxZoom: 19,
+  }).addTo(map)
+  tiles.bringToBack()
+}
+
+onMounted(() => {
+  buildMap()
+  // Container sem largura (seção ainda oculta) espera ganhar dimensões.
+  if (!map && container.value && typeof ResizeObserver !== 'undefined') {
+    observer = new ResizeObserver(() => {
+      if (!map && container.value?.clientWidth) {
+        observer?.disconnect()
+        observer = null
+        buildMap()
+      }
+    })
+    observer.observe(container.value)
+  }
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  observer = null
+  window.removeEventListener('resize', handleResize)
+  layers.clear()
+  if (map) {
+    map.remove()
+    map = null
+  }
+})
+
+watch(() => props.mode, refreshLayers)
+watch(() => props.states, refreshLayers, { deep: true })
 </script>
 
 <template>
-  <div class="relative w-full">
-    <svg
-      :viewBox="`0 0 ${width} ${height}`"
-      class="w-full"
-      :class="compact ? 'max-w-md' : ''"
+  <div
+    class="relative w-full overflow-hidden rounded-2xl border border-hairline bg-surface"
+    :class="compact ? 'h-80' : 'h-[32rem] lg:h-[36rem]'"
+  >
+    <div
+      ref="container"
+      class="h-full w-full"
       role="img"
-      aria-label="Cartograma do Brasil com temas dominantes da cobertura por estado"
-    >
-      <g
-        v-for="cell in cells"
-        :key="cell.state.uf"
-        :transform="`translate(${cell.x} ${cell.y})`"
-        :class="interactive ? 'cursor-pointer' : ''"
-        @mouseenter="hovered = cell.state.uf"
-        @mouseleave="hovered = null"
-        @click="handleSelect(cell.state)"
-      >
-        <rect
-          :width="CELL"
-          :height="CELL"
-          rx="12"
-          :fill="cell.color"
-          :fill-opacity="cell.alpha"
-          :stroke="cell.color"
-          :stroke-opacity="hovered === cell.state.uf ? 0.95 : 0.35"
-          stroke-width="1.4"
-          class="transition-all duration-300"
-          :style="hovered === cell.state.uf ? `filter: drop-shadow(0 0 14px ${cell.color})` : ''"
-        />
-        <text
-          :x="CELL / 2"
-          :y="CELL / 2 - 2"
-          text-anchor="middle"
-          class="pointer-events-none fill-white font-display text-[13px] font-semibold"
-        >
-          {{ cell.state.uf }}
-        </text>
-        <text
-          :x="CELL / 2"
-          :y="CELL / 2 + 13"
-          text-anchor="middle"
-          class="pointer-events-none fill-white/70 text-[9px]"
-        >
-          {{ cell.value }}%
-        </text>
-      </g>
-    </svg>
+      aria-label="Mapa do Brasil com as unidades federativas coloridas conforme o tema dominante da cobertura"
+    />
 
-    <!-- tooltip -->
-    <Transition name="route-fade">
-      <div
-        v-if="hoveredState && !compact"
-        class="pointer-events-none absolute right-0 top-0 w-56 rounded-2xl glass p-4 text-left"
-      >
-        <p class="font-display text-sm font-semibold">{{ hoveredState.name }}</p>
-        <p class="mt-1 text-xs text-ink-muted">{{ hoveredState.outlets }} veículos monitorados</p>
-        <div class="mt-3 space-y-1.5">
-          <div
-            v-for="theme in POLARIZATION_THEMES"
-            :key="theme.key"
-            class="flex items-center gap-2 text-[0.7rem]"
-          >
-            <span class="h-1.5 w-1.5 rounded-full" :style="{ background: theme.color }" />
-            <span class="flex-1 text-ink-muted">{{ theme.label }}</span>
-            <span class="font-display font-semibold">{{ hoveredState.themes[theme.key] }}%</span>
-          </div>
+    <!-- painel de informações do estado sob o cursor -->
+    <div
+      v-if="hoveredState && !compact"
+      class="pointer-events-none absolute top-0 right-0 z-[500] w-56 rounded-2xl glass p-4 text-left"
+    >
+      <p class="font-display text-sm font-semibold">{{ hoveredState.name }}</p>
+      <p class="mt-1 text-xs text-ink-muted">{{ hoveredState.outlets }} veículos monitorados</p>
+      <div class="mt-3 space-y-1.5">
+        <div
+          v-for="theme in hoveredThemes"
+          :key="theme.key"
+          class="flex items-center gap-2 text-[0.7rem]"
+        >
+          <span class="h-1.5 w-1.5 rounded-full" :style="{ background: theme.color }" />
+          <span class="flex-1 text-ink-muted">{{ theme.label }}</span>
+          <span class="font-display font-semibold">{{ theme.value }}%</span>
         </div>
-        <p class="mt-3 border-t border-hairline pt-2 text-[0.7rem] text-ink-muted">
-          Polarização: <strong class="text-ink">{{ hoveredState.polarization }}</strong> / 100
-        </p>
       </div>
-    </Transition>
+      <p class="mt-3 border-t border-hairline pt-2 text-[0.7rem] text-ink-muted">
+        Polarização: <strong class="text-ink">{{ hoveredState.polarization }}</strong> / 100
+      </p>
+    </div>
   </div>
 </template>

@@ -10,6 +10,7 @@ import PCard from '@/components/ui/PCard.vue'
 import { POLARIZATION_THEMES, STATES } from '@/data'
 import { polarizationColor } from '@/lib/colors'
 import { dominantTheme } from '@/lib/intel'
+import { nationalMix as nationalMixOfStates } from '@/lib/mapdata'
 import { fetchStates } from '@/lib/services'
 import { useReveal } from '@/composables/useReveal'
 
@@ -29,15 +30,7 @@ const ranking = computed(() =>
   [...states.value].sort((a, b) => b.polarization - a.polarization).slice(0, 6),
 )
 
-const nationalMix = computed(() => {
-  const totals = {}
-  POLARIZATION_THEMES.forEach((t) => {
-    totals[t.key] = states.value.length
-      ? Math.round(states.value.reduce((sum, s) => sum + s.themes[t.key], 0) / states.value.length)
-      : 0
-  })
-  return totals
-})
+const nationalMix = computed(() => nationalMixOfStates(states.value))
 
 const selectedThemes = computed(() => {
   if (!selected.value) return []
@@ -58,13 +51,14 @@ onMounted(async () => {
   <div ref="root" class="pb-10">
     <div class="container-prisma">
       <header class="mx-auto max-w-3xl text-center">
-        <PBadge color="#FFC24B" dot pulse>Inteligência nacional sobre narrativas</PBadge>
+        <PBadge color="#FFC24B" dot>Inteligência nacional sobre narrativas</PBadge>
         <h1 class="mt-6 text-4xl leading-tight sm:text-5xl">
-          Mapa de Polarização <span class="text-gradient">em Tempo Real.</span>
+          Mapa de Polarização <span class="text-gradient">por estado.</span>
         </h1>
         <p class="mx-auto mt-4 max-w-2xl text-base text-ink-muted">
-          Cada estado mostra quais temas dominam a cobertura naquele momento e o quanto diferentes
-          grupos de veículos divergem no enquadramento.
+          Cada estado mostra quais temas dominam a cobertura consolidada e o quanto a cobertura
+          diverge no enquadramento. Os valores são uma agregação por UF, não uma medição de opinião
+          pública.
         </p>
       </header>
 
@@ -90,7 +84,7 @@ onMounted(async () => {
         <!-- mapa -->
         <PCard data-reveal accent="#8B5CF6" class="p-8">
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-lg">Cartograma nacional</h2>
+            <h2 class="text-lg">Mapa da cobertura por estado</h2>
             <span class="text-xs text-ink-muted">{{ totalOutlets }} veículos monitorados</span>
           </div>
 

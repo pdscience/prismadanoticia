@@ -8,6 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import DnaRadar from '@/components/analysis/DnaRadar.vue'
 import AnalysisLegend from '@/components/analysis/AnalysisLegend.vue'
+import EvidenceList from '@/components/analysis/EvidenceList.vue'
 import StoryPerspectives from '@/components/analysis/StoryPerspectives.vue'
 import ShareCard from '@/components/intel/ShareCard.vue'
 import MeterBar from '@/components/ui/MeterBar.vue'
@@ -30,6 +31,8 @@ const loading = ref(false)
 const activeStep = ref(-1)
 const error = ref('')
 
+const nextSteps = [{ to: '/comparacao', title: 'Comparar veículos', text: 'Quem destacou o quê' }]
+
 const prismaIndex = computed(() => dnaAverage(analysis.value.dna))
 
 const confidenceLabel = computed(() => {
@@ -38,12 +41,6 @@ const confidenceLabel = computed(() => {
   if (c >= 60) return { text: 'Sustentação moderada', color: '#FFC24B' }
   return { text: 'Leitura crítica recomendada', color: '#FF3B5C' }
 })
-
-const strengthColor = {
-  forte: '#2EE6A8',
-  média: '#FFC24B',
-  fraca: '#FF3B5C',
-}
 
 const publishedLabel = computed(() =>
   new Date(analysis.value.publishedAt).toLocaleString('pt-BR', {
@@ -349,29 +346,7 @@ onMounted(async () => {
             <p class="mt-1.5 text-xs text-ink-muted">
               O que sustenta as afirmações da matéria, classificado por força.
             </p>
-            <ul class="mt-5 divide-y divide-hairline">
-              <li
-                v-for="ev in analysis.evidences"
-                :key="ev.label"
-                class="flex items-start gap-4 py-4 first:pt-0 last:pb-0"
-              >
-                <span
-                  class="mt-0.5 shrink-0 rounded-md px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-wider"
-                  :style="{
-                    color: strengthColor[ev.strength],
-                    background: `${strengthColor[ev.strength]}18`,
-                  }"
-                >
-                  {{ ev.strength }}
-                </span>
-                <div>
-                  <p class="text-sm font-medium text-ink">{{ ev.label }}</p>
-                  <p class="mt-1 text-xs leading-relaxed text-ink-muted">
-                    <span class="text-ink-muted/80">{{ ev.kind }} ·</span> {{ ev.note }}
-                  </p>
-                </div>
-              </li>
-            </ul>
+            <EvidenceList :evidences="analysis.evidences" />
           </PCard>
 
           <PCard accent="#FF3B5C">
@@ -407,15 +382,21 @@ onMounted(async () => {
 
         <!-- próximos passos -->
         <div class="grid gap-5 lg:grid-cols-3">
-          <PCard accent="#8B5CF6" class="lg:col-span-2">
-            <h3 class="text-lg">Continuar investigando</h3>
-            <div class="mt-5 grid gap-3 sm:grid-cols-3">
+          <PCard accent="#FFC24B" class="lg:col-span-2">
+            <h3 class="text-base">Compartilhar</h3>
+            <p class="mt-1.5 text-xs text-ink-muted">
+              Gere o cartão do DNA desta análise para redes sociais.
+            </p>
+            <div class="mx-auto mt-5 w-full max-w-[480px]">
+              <ShareCard :dna="analysis.dna" :topic="analysis.topic" :outlet="analysis.outlet" />
+            </div>
+          </PCard>
+
+          <PCard accent="#8B5CF6">
+            <h3 class="text-base">Continuar investigando</h3>
+            <div class="mt-5 grid gap-3 sm:grid-cols-1">
               <RouterLink
-                v-for="item in [
-                  { to: '/comparacao', title: 'Comparar veículos', text: 'Quem destacou o quê' },
-                  { to: '/blindspot', title: 'BlindSpot', text: 'Quem deixou de fora' },
-                  { to: '/replay', title: 'Replay', text: 'Como a narrativa mudou' },
-                ]"
+                v-for="item in nextSteps"
                 :key="item.to"
                 :to="item.to"
                 class="group rounded-2xl border border-hairline p-4 transition-colors hover:border-hairline-strong"
@@ -428,16 +409,6 @@ onMounted(async () => {
                   Abrir →
                 </span>
               </RouterLink>
-            </div>
-          </PCard>
-
-          <PCard accent="#FFC24B">
-            <h3 class="text-lg">Compartilhar</h3>
-            <p class="mt-1.5 text-xs text-ink-muted">
-              Gere o cartão do DNA desta análise para redes sociais.
-            </p>
-            <div class="mt-5">
-              <ShareCard :dna="analysis.dna" :topic="analysis.topic" :outlet="analysis.outlet" />
             </div>
           </PCard>
         </div>

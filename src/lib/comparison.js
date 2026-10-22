@@ -1,3 +1,5 @@
+import { frame } from '@/data/frames'
+
 const DEMO_HOST = 'exemplo.com.br'
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
@@ -42,6 +44,28 @@ function formatWindow(rows) {
   const labels = dates.map((value) => formatDate(new Date(value).toISOString()))
   if (labels.length === 1) return labels[0]
   return `${labels[0]} – ${labels[labels.length - 1]}`
+}
+
+/** Converte análises do Engine no formato de linha usado pela comparação. */
+export function analysisRows(analyses) {
+  return (analyses ?? []).map((analysis) => ({
+    id: analysis.id,
+    outlet: analysis.outlet,
+    highlight: analysis.highlight,
+    angle: analysis.angle,
+    tone: analysis.tone,
+    dna: analysis.dna ?? {},
+    accent: frame(analysis.dominantFrame).color,
+    url: analysis.url,
+    published_at: analysis.publishedAt,
+    confidence: analysis.confidence,
+    topic: analysis.topic,
+  }))
+}
+
+/** Monta a comparação a partir das análises recém-geradas (busca web). */
+export function buildComparisonFromAnalyses(analyses, requestedTopic) {
+  return buildComparison(analysisRows(analyses), requestedTopic)
 }
 
 export function buildComparison(rows, requestedTopic) {

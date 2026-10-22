@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest'
 import {
   fetchAnalysis,
   fetchBiasAnalysis,
-  fetchBlindspot,
   fetchComparison,
   fetchCoverage,
+  fetchLatestBias,
   fetchPerspectives,
-  fetchReplay,
   fetchSampleAnalysis,
+  fetchStats,
   fetchStates,
   fetchTrends,
 } from '@/lib/services'
@@ -16,10 +16,28 @@ import {
 const live = import.meta.env.VITE_USE_MOCK === 'false'
 
 describe.skipIf(!live)('serviços InsForge ao vivo', () => {
-  it('carrega tendências', async () => {
+  it('carrega tendências da janela de 7 dias', async () => {
     const trends = await fetchTrends()
-    expect(trends.length).toBeGreaterThan(0)
-    expect(trends[0]).toHaveProperty('frames')
+    expect(Array.isArray(trends)).toBe(true)
+    if (trends.length) {
+      expect(trends[0]).toHaveProperty('frames')
+      expect(trends[0].outlets).toBeGreaterThan(0)
+      expect(trends[0].articles).toBeGreaterThanOrEqual(trends[0].outlets)
+      expect(typeof trends[0].hasBaseline).toBe('boolean')
+    }
+  })
+
+  it('carrega a contagem real de veículos', async () => {
+    const stats = await fetchStats()
+    expect(stats.outlets).toBeGreaterThan(0)
+    expect(stats.analyses).toBeGreaterThanOrEqual(stats.outlets)
+  })
+
+  it('carrega o enquadramento real mais recente', async () => {
+    const bias = await fetchLatestBias()
+    expect(bias).not.toBeNull()
+    expect(bias.url).not.toContain('exemplo.com.br')
+    expect(bias.textLabel).toBeTruthy()
   })
 
   it('carrega a análise de exemplo', async () => {
@@ -81,17 +99,6 @@ describe.skipIf(!live)('serviços InsForge ao vivo', () => {
       coverage.percentages.esquerda + coverage.percentages.centro + coverage.percentages.direita,
     ).toBe(100)
   }, 15000)
-
-  it('carrega blindspot', async () => {
-    const blindspot = await fetchBlindspot()
-    expect(blindspot.covered.length).toBeGreaterThan(0)
-    expect(blindspot.missing.length).toBeGreaterThan(0)
-  })
-
-  it('carrega replay', async () => {
-    const replay = await fetchReplay()
-    expect(replay.frames.length).toBe(5)
-  })
 
   it('carrega os estados', async () => {
     const states = await fetchStates()

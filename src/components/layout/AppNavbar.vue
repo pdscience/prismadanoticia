@@ -17,8 +17,6 @@ const links = [
   { to: '/vies', label: 'Enquadramento' },
   { to: '/comparacao', label: 'Comparação' },
   { to: '/cobertura', label: 'Cobertura' },
-  { to: '/blindspot', label: 'BlindSpot' },
-  { to: '/replay', label: 'Replay' },
   { to: '/mapa', label: 'Mapa' },
   { to: '/tecnologia', label: 'Tecnologia' },
 ]

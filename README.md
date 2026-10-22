@@ -12,12 +12,13 @@ Brand Book Premium V1.0.
 
 ## Stack
 
-| Camada       | Tecnologia                                |
-| ------------ | ----------------------------------------- |
-| Front-end    | Vue 3, Vite, Tailwind CSS v4, Motion, PWA |
-| Roteamento   | Vue Router 4 (lazy loading por rota)      |
-| Back-end     | InsForge, PostgreSQL, Edge Functions      |
-| Inteligência | OpenRouter, pgvector, Embeddings          |
+| Camada       | Tecnologia                                      |
+| ------------ | ----------------------------------------------- |
+| Front-end    | Vue 3, Vite, Tailwind CSS v4, Motion, PWA       |
+| Roteamento   | Vue Router 4 (lazy loading por rota)            |
+| Mapas        | Leaflet + OpenStreetMap (tiles) e GeoJSON local |
+| Back-end     | InsForge, PostgreSQL, Edge Functions            |
+| Inteligência | OpenRouter, pgvector, Embeddings                |
 
 ## Comandos
 
@@ -44,13 +45,14 @@ src/
 │  │                          # FeatureGrid, MoatSection, BrandManifesto
 │  ├─ analysis/DnaRadar.vue   # Radar de 6 eixos — assinatura visual do Prisma
 │  ├─ bias/                   # Bússola política, perfil do veículo e indícios
-│  └─ intel/                  # PolarizationMap (cartograma), ShareCard (cartão viral)
+│  └─ intel/                  # PolarizationMap (mapa OSM), ShareCard (cartão viral)
 ├─ composables/               # useReveal (scroll reveal + contadores), useTheme
 ├─ data/                      # Frames canônicos, fixtures por domínio e barrel
 ├─ lib/                       # Cliente InsForge, radar, cores, análise e serviços
 ├─ router/index.js
-└─ views/                     # Home, Analysis, Bias, Compare, BlindSpot, Replay, Map, Tech, Brand, 404
+└─ views/                     # Home, Analysis, Bias, Compare, Coverage, Map, Tech, Brand, 404
 functions/analyze-url.ts      # Edge Function: extrai matéria, analisa com IA e grava no banco
+functions/search-web.ts       # Edge Function: busca matérias na internet por tema
 functions/analyze-bias.ts     # Edge Function: lê matéria salva e estima enquadramento
 migrations/                   # Schema, RLS, views, RPC e seed do InsForge
 tests/unit/                   # Testes Vitest de dados e helpers
@@ -64,9 +66,7 @@ tests/unit/                   # Testes Vitest de dados e helpers
 | `/analise`    | Cap. 4                | Tela de Análise: Resumo IA, Confiança, Diversidade de Fontes, Evidências, DNA da Notícia |
 | `/vies`       | Cap. 4                | Radar de Enquadramento: escalas econômica/social, veículo e indícios de distorção        |
 | `/comparacao` | Cap. 5                | Comparação Inteligente entre veículos + radar sobreposto                                 |
-| `/blindspot`  | Cap. 6                | BlindSpot Brasil, com seletor de período obrigatório                                     |
-| `/replay`     | Cap. 7                | Prisma Replay: player da evolução da narrativa                                           |
-| `/mapa`       | Moat                  | Mapa de Polarização em Tempo Real (cartograma das 27 UFs)                                |
+| `/mapa`       | Moat                  | Mapa de Polarização por estado (OpenStreetMap, 27 UFs)                                   |
 | `/tecnologia` | Cap. 8, 9, 10, 11, 12 | Stack, Prisma Engine, Banco Inteligente, PWA, Extensão Chrome                            |
 | `/marca`      | Cap. 1, 2, 13         | DNA da marca, arquétipos, logo, paleta, tipografia, Pitch Deck                           |
 
@@ -82,14 +82,14 @@ A descrição detalhada de cada tela, com fonte de dados, estados de demonstraç
 | Midnight            | `#05091A` | Fundo padrão                     |
 | Electric Blue       | `#2D6BFF` | Ação primária e dados            |
 | Prism Purple        | `#8B5CF6` | Inteligência e IA                |
-| Energy Red          | `#FF3B5C` | Alerta e BlindSpot               |
+| Energy Red          | `#FF3B5C` | Alerta e sinais editoriais       |
 | Insight Gold        | `#FFC24B` | Descoberta e destaque            |
 | Signal Mint (apoio) | `#2EE6A8` | Evidências sustentadas e sucesso |
 
 **Tipografia**: Space Grotesk (logo e títulos) · Inter (interface).
 
 As cores dos **enquadramentos** (Política, Economia, Segurança, Meio Ambiente, Saúde, Social,
-Jurídico) têm fonte única em `FRAMES`, dentro de `src/data/frames.js`. Mapa, Replay e hero leem
+Jurídico) têm fonte única em `FRAMES`, dentro de `src/data/frames.js`. Mapa e hero leem
 de lá, para que a mesma cor signifique sempre o mesmo enquadramento em todas as telas.
 
 ## O DNA da Notícia
@@ -194,6 +194,19 @@ npx -y @insforge/cli@latest functions deploy analyze-bias \
 
 Modelo padrão: `openai/gpt-4o-mini`. Para trocar, defina `OPENROUTER_BIAS_MODEL`.
 
+### Views de leitura (`trend_feed` e `stats_feed`)
+
+Duas views públicas, criadas na migration `20261021160000_add-trend-stats-views.sql`, alimentam a
+landing com números reais:
+
+- `trend_feed` agrega, por tema, os veículos e as matérias publicados nos **últimos 7 dias**
+  (`coalesce(published_at, created_at)`), com a variação contra a janela de 7 dias anterior.
+- `stats_feed` devolve a contagem de veículos realmente analisados, de análises e de temas.
+
+Ambas ignoram o veículo de demonstração (`veiculo-de-exemplo`). Em produção, a falha de consulta
+não vira número fictício: a seção de tendências mostra estado de erro e o hero exibe `—` até haver
+dado.
+
 ### Limites e deploy do frontend
 
 Cada IP pode disparar 10 análises novas por hora; o projeto também tem um teto global de 100 por
@@ -213,7 +226,7 @@ npx -y @insforge/cli@latest deployments deploy .
 
 ## Próximos passos
 
-1. Enriquecer a análise com comparação entre veículos e séries temporais do Replay.
+1. Enriquecer a comparação com séries temporais de cobertura por tema.
 2. Cadastrar perfis curados de veículos com metodologia e fontes públicas.
 3. Limpar periodicamente `analysis_requests` e `bias_requests` e monitorar consumo no OpenRouter.
 4. Publicar a extensão Chrome reutilizando `DnaRadar` e `PolarizationMap`.

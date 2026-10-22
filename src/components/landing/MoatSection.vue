@@ -30,14 +30,14 @@ const audiences = ['Imprensa', 'Universidades', 'Institutos de pesquisa', 'Órg�
               align="left"
               class="mt-6"
               title="Mapa de Polarização"
-              highlight="em Tempo Real."
-              description="Um mapa do Brasil onde cada estado mostra quais temas dominam a cobertura naquele momento — e como esses temas estão sendo enquadrados por diferentes grupos de veículos."
+              highlight="por estado."
+              description="Um mapa do Brasil onde cada estado mostra quais temas dominam a cobertura consolidada — e o quanto a cobertura diverge no enquadramento."
             />
 
             <p data-reveal class="mt-6 max-w-xl text-sm leading-relaxed text-ink-muted">
               Isso transforma o Prisma de um analisador de notícias em uma plataforma de
-              inteligência nacional sobre narrativas: um ativo difícil de copiar e extremamente
-              valioso para quem estuda a opinião pública.
+              inteligência sobre narrativas: um ativo difícil de copiar e extremamente valioso para
+              quem estuda a cobertura da opinião pública.
             </p>
 
             <div data-reveal class="mt-7 flex flex-wrap gap-2">

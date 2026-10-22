@@ -1,4 +1,4 @@
-import { BIAS_SAMPLE, BLINDSPOT, COMPARISON, REPLAY, SAMPLE_ANALYSIS, STATES, TRENDS } from '@/data'
+import { BIAS_SAMPLE, COMPARISON, SAMPLE_ANALYSIS, STATES, TRENDS } from '@/data'
 import { analyzeUrl } from '@/lib/analysis'
 import { buildComparison } from '@/lib/comparison'
 import { buildCoverage } from '@/lib/coverage'
@@ -53,33 +53,57 @@ function mapAnalysis(row) {
   }
 }
 
-export function fetchTrends() {
-  return withFallback(
-    async () => {
-      const rows = ensure(
-        await insforge.database
-          .from('topics')
-          .select('slug,label,outlets_count,articles_count,delta,accent,headline,frame_keys')
-          .eq('show_in_trends', true)
-          .order('trend_score', { ascending: false })
-          .limit(10),
-      )
-      return rows.map((row) => ({
-        id: row.slug,
-        label: row.label,
-        outlets: row.outlets_count,
-        articles: row.articles_count,
-        delta: Number(row.delta),
-        accent: row.accent,
-        frames: row.frame_keys,
-        headline: row.headline,
-      }))
-    },
-    () => TRENDS,
+/**
+ * Tendências: cobertura real por tema nos últimos 7 dias.
+ * Em mock devolve a fixture local; em produção lê `trend_feed` e não substitui
+ * falha por número fictício — o erro sobe para a tela.
+ */
+export async function fetchTrends() {
+  if (useMockData || !insforge) return TRENDS
+
+  const rows = ensure(
+    await insforge.database
+      .from('trend_feed')
+      .select('topic_slug,label,accent,frame_keys,headline,outlets,articles,delta,has_baseline')
+      .limit(10),
   )
+
+  return rows.map((row) => ({
+    id: row.topic_slug,
+    label: row.label,
+    outlets: row.outlets ?? 0,
+    articles: row.articles ?? 0,
+    delta: Number(row.delta ?? 0),
+    hasBaseline: Boolean(row.has_baseline),
+    accent: row.accent,
+    frames: row.frame_keys ?? [],
+    headline: row.headline ?? '',
+  }))
 }
 
-export async function fetchAnalysis(url = SAMPLE_ANALYSIS.url) {
+/** Contagem real de veículos, análises e temas monitorados pelo Engine. */
+export async function fetchStats() {
+  if (useMockData || !insforge) return { outlets: 0, analyses: 0, topics: 0 }
+
+  try {
+    const row = ensure(
+      await insforge.database
+        .from('stats_feed')
+        .select('outlets,analyses,topics')
+        .limit(1)
+        .maybeSingle(),
+    )
+    return {
+      outlets: row?.outlets ?? 0,
+      analyses: row?.analyses ?? 0,
+      topics: row?.topics ?? 0,
+    }
+  } catch {
+    return { outlets: 0, analyses: 0, topics: 0 }
+  }
+}
+
+export async function fetchAnalysis(url = SAMPLE_ANALYSIS.url, { topic = '' } = {}) {
   if (useMockData || !insforge) {
     return url === SAMPLE_ANALYSIS.url ? SAMPLE_ANALYSIS : analyzeUrl(url)
   }
@@ -95,12 +119,63 @@ export async function fetchAnalysis(url = SAMPLE_ANALYSIS.url) {
   )
   if (row) return mapAnalysis(row)
 
-  const { data, error } = await insforge.functions.invoke('analyze-url', { body: { url } })
+  const { data, error } = await insforge.functions.invoke('analyze-url', {
+    body: { url, ...(topic ? { topic } : {}) },
+  })
   if (error) throw new Error(error.message || 'Não foi possível analisar esta URL.')
 
   const analysis = data?.analysis ?? data
   if (!analysis?.title) throw new Error('A análise não retornou dados válidos.')
   return { ...analysis, clusterSize: analysis.clusterSize ?? 1 }
+}
+
+/**
+ * Busca matérias sobre um tema na internet.
+ * A edge function devolve candidatos crus; o filtro de veículos acontece no front.
+ */
+export async function searchWebCoverage(topic) {
+  if (useMockData || !insforge) {
+    throw new Error('A busca na internet está indisponível no modo demonstração.')
+  }
+
+  const { data, error } = await insforge.functions.invoke('search-web', { body: { topic } })
+  if (error) throw new Error(error.message || 'Não foi possível buscar na internet.')
+
+  return {
+    topic: data?.topic ?? topic,
+    results: Array.isArray(data?.results) ? data.results : [],
+    cached: Boolean(data?.cached),
+  }
+}
+
+/**
+ * Analisa uma lista de matérias (busca web) com o mesmo Engine da Análise.
+ * Duas matérias por vez para não estourar o tempo da função.
+ */
+export async function analyzeArticles(urls, topic = '', onProgress) {
+  const queue = [...urls]
+  const analyses = []
+  const failures = []
+
+  const worker = async () => {
+    while (queue.length) {
+      const url = queue.shift()
+      try {
+        const analysis = await fetchAnalysis(url, { topic })
+        if (analysis) analyses.push(analysis)
+      } catch (error) {
+        failures.push({
+          url,
+          message: error instanceof Error ? error.message : 'Falha ao analisar a matéria.',
+        })
+      }
+      onProgress?.(analyses.length + failures.length, urls.length)
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(2, queue.length) }, worker)
+  await Promise.all(workers)
+  return { analyses, failures }
 }
 
 export async function fetchSampleAnalysis() {
@@ -202,110 +277,6 @@ export async function fetchCoverage({ url, clusterId } = {}) {
   return buildCoverage(rows, story)
 }
 
-export function fetchBlindspot(topic = BLINDSPOT.topic) {
-  const slug = slugify(topic) || DEFAULT_TOPIC
-  return withFallback(
-    async () => {
-      const topicRow = ensure(
-        await insforge.database
-          .from('topics')
-          .select('id,label,slug')
-          .eq('slug', slug)
-          .maybeSingle(),
-      )
-      if (!topicRow) throw new Error('Tema não encontrado')
-
-      const [report, coverage, gaps, subthemes] = await Promise.all([
-        insforge.database
-          .from('blindspot_reports')
-          .select('window_label,note')
-          .eq('topic_id', topicRow.id)
-          .maybeSingle(),
-        insforge.database
-          .from('blindspot_coverage')
-          .select('outlet,articles')
-          .eq('topic_id', topicRow.id)
-          .order('sort_order')
-          .limit(20),
-        insforge.database
-          .from('blindspot_gaps')
-          .select('outlet,reach,last_mention,severity')
-          .eq('topic_id', topicRow.id)
-          .order('sort_order')
-          .limit(20),
-        insforge.database
-          .from('blindspot_subthemes')
-          .select('label,coverage')
-          .eq('topic_id', topicRow.id)
-          .order('sort_order')
-          .limit(20),
-      ])
-
-      const reportRow = ensure(report)
-      return {
-        topic: topicRow.label,
-        requestedTopic: topic,
-        window: reportRow?.window_label ?? BLINDSPOT.window,
-        note: reportRow?.note ?? BLINDSPOT.note,
-        demo: false,
-        covered: ensure(coverage).map((row) => ({ outlet: row.outlet, articles: row.articles })),
-        missing: ensure(gaps).map((row) => ({
-          outlet: row.outlet,
-          reach: row.reach,
-          lastMention: row.last_mention,
-          severity: row.severity,
-        })),
-        subthemes: ensure(subthemes).map((row) => ({
-          label: row.label,
-          coverage: row.coverage,
-        })),
-      }
-    },
-    () => ({ ...BLINDSPOT, requestedTopic: topic, demo: true }),
-  )
-}
-
-export function fetchReplay(topic = REPLAY.topic) {
-  const slug = slugify(topic) || DEFAULT_TOPIC
-  return withFallback(
-    async () => {
-      const topicRow = ensure(
-        await insforge.database
-          .from('topics')
-          .select('id,label,slug')
-          .eq('slug', slug)
-          .maybeSingle(),
-      )
-      if (!topicRow) throw new Error('Tema não encontrado')
-
-      const rows = ensure(
-        await insforge.database
-          .from('replay_events')
-          .select('time_label,label,outlets,dominant_frame,sentiment,description,mix')
-          .eq('topic_id', topicRow.id)
-          .order('sort_order')
-          .limit(30),
-      )
-
-      return {
-        topic: topicRow.label,
-        requestedTopic: topic,
-        demo: false,
-        frames: rows.map((row) => ({
-          time: row.time_label,
-          label: row.label,
-          outlets: row.outlets,
-          dominantFrame: row.dominant_frame,
-          sentiment: row.sentiment,
-          description: row.description,
-          mix: row.mix,
-        })),
-      }
-    },
-    () => ({ ...REPLAY, requestedTopic: topic, demo: true }),
-  )
-}
-
 export function fetchStates() {
   return withFallback(
     async () => {
@@ -382,6 +353,29 @@ function mapBiasRow(row) {
 
 export function fetchBiasSample() {
   return BIAS_SAMPLE
+}
+
+/**
+ * Enquadramento mais recente já calculado no backend.
+ * Serve de exemplo real na tela de Radar; devolve null quando não há dado
+ * (ou quando a consulta falha), para a tela sinalizar o exemplo ilustrativo.
+ */
+export async function fetchLatestBias() {
+  if (useMockData || !insforge) return null
+
+  try {
+    const rows = ensure(
+      await insforge.database
+        .from('bias_feed')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5),
+    )
+    const row = (rows ?? []).find((item) => !String(item.url ?? '').includes('exemplo.com.br'))
+    return row ? mapBiasRow(row) : null
+  } catch {
+    return null
+  }
 }
 
 export async function fetchBiasAnalysis(url = BIAS_SAMPLE.url) {

@@ -204,6 +204,81 @@
   background-size: 56px 56px;
 }
 
+/* ==========================================================================
+   Mapa de polarização (Leaflet + OpenStreetMap)
+   ========================================================================== */
+
+/* Container do mapa: o fundo evita "flash" branco antes dos tiles carregarem. */
+.leaflet-container {
+  background-color: var(--brand-canvas);
+  font-family: var(--font-sans);
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--brand-text);
+}
+
+/**
+ * Tema escuro: os tiles do OpenStreetMap são clareados por um filtro para
+ * casar com a paleta Midnight sem depender de um provedor com API key.
+ */
+[data-theme='dark'] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(185deg) brightness(0.92) contrast(0.88) saturate(0.75);
+}
+
+/* Rótulo permanente da UF sobre o polígono. */
+.leaflet-tooltip.prisma-uf-label {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  color: #fff;
+  text-align: center;
+  line-height: 1.15;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.7);
+  pointer-events: none;
+}
+
+.prisma-uf-label__code {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* Sigla das UFs pequenas: sem o valor percentual, para evitar sobreposição. */
+.prisma-uf-label__code--compact {
+  font-size: 0.58rem;
+  opacity: 0.9;
+}
+
+/* Tema claro: rótulo escuro sobre os polígonos claros do OpenStreetMap. */
+[data-theme='light'] .leaflet-tooltip.prisma-uf-label {
+  color: #0b1024;
+  text-shadow: 0 1px 2px rgb(255 255 255 / 0.9);
+}
+
+/* Telas estreitas: apenas a sigla, para o Nordeste não virar um bloco ilegível. */
+@media (max-width: 640px) {
+  .prisma-uf-label__value {
+    display: none;
+  }
+
+  .prisma-uf-label__code {
+    font-size: 0.62rem;
+  }
+
+  .prisma-uf-label__code--compact {
+    font-size: 0.52rem;
+  }
+}
+
+.prisma-uf-label__value {
+  display: block;
+  font-size: 0.55rem;
+  opacity: 0.78;
+}
+
 /* Transição de rotas */
 .route-fade-enter-active,
 .route-fade-leave-active {
@@ -240,6 +315,8 @@
   [data-prism],
   [data-ray],
   [data-ray-label],
+  [data-ray-dot],
+  [data-beam-dot],
   [data-core] {
     opacity: 1 !important;
     transform: none !important;

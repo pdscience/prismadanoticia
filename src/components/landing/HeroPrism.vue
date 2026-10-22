@@ -5,12 +5,13 @@
  * Depois aparece: "Toda notícia tem um ângulo. Descubra todos."
  */
 import { animate, stagger } from 'motion'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
 import { frame } from '@/data'
+import { fetchStats } from '@/lib/services'
 
 const router = useRouter()
 const url = ref('')
@@ -20,53 +21,82 @@ const copy = ref(null)
 
 // Os ângulos que saem do prisma usam as cores canônicas dos enquadramentos.
 const rays = [
-  { key: 'juridico', d: 'M350 215 L560 95', ly: 92 },
-  { key: 'politica', d: 'M350 215 L566 155', ly: 152 },
-  { key: 'economia', d: 'M350 215 L570 215', ly: 212 },
-  { key: 'seguranca', d: 'M350 215 L566 275', ly: 272 },
-  { key: 'ambiente', d: 'M350 215 L560 335', ly: 332 },
+  { key: 'juridico', d: 'M350 215 L560 95', x2: 560, y2: 95, ly: 92 },
+  { key: 'politica', d: 'M350 215 L566 155', x2: 566, y2: 155, ly: 152 },
+  { key: 'economia', d: 'M350 215 L570 215', x2: 570, y2: 215, ly: 212 },
+  { key: 'seguranca', d: 'M350 215 L566 275', x2: 566, y2: 275, ly: 272 },
+  { key: 'ambiente', d: 'M350 215 L560 335', x2: 560, y2: 335, ly: 332 },
 ].map((ray) => ({ ...ray, ...frame(ray.key) }))
 
-const stats = [
-  { value: '486', label: 'veículos monitorados' },
+const outlets = ref(null)
+const stats = computed(() => [
+  { value: outlets.value ? String(outlets.value) : '—', label: 'veículos analisados' },
   { value: '6', label: 'eixos no DNA' },
   { value: '27', label: 'UFs no mapa' },
-]
+])
 
 function submit() {
   router.push({ name: 'analysis', query: url.value ? { url: url.value } : {} })
 }
 
-onMounted(() => {
+onMounted(async () => {
+  const counters = await fetchStats()
+  if (counters.outlets > 0) outlets.value = counters.outlets
+
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
-  if (copy.value) {
-    const items = copy.value.querySelectorAll('[data-hero]')
-    if (reduced) {
-      items.forEach((el) => (el.style.opacity = '1'))
-    } else {
-      items.forEach((el) => {
-        el.style.opacity = '0'
-        el.style.transform = 'translateY(22px)'
-      })
-      animate(
-        items,
-        { opacity: [0, 1], y: [22, 0] },
-        { duration: 0.85, delay: stagger(0.11, { startDelay: 0.5 }), ease: [0.16, 1, 0.3, 1] },
-      )
-    }
+  const items = copy.value ? [...copy.value.querySelectorAll('[data-hero]')] : []
+
+  if (reduced) {
+    items.forEach((el) => {
+      el.style.opacity = '1'
+      el.style.transform = 'none'
+    })
+  } else {
+    items.forEach((el) => {
+      el.style.opacity = '0'
+      el.style.transform = 'translateY(22px)'
+    })
+    animate(
+      items,
+      { opacity: [0, 1], y: [22, 0] },
+      { duration: 0.85, delay: stagger(0.11, { startDelay: 0.5 }), ease: [0.16, 1, 0.3, 1] },
+    )
   }
 
-  if (!scene.value || reduced) return
+  if (!scene.value) return
 
-  const beam = scene.value.querySelector('[data-beam]')
+  const beams = [...scene.value.querySelectorAll('[data-beam]')]
+  const beamDots = [...scene.value.querySelectorAll('[data-beam-dot]')]
   const prism = scene.value.querySelector('[data-prism]')
-  const rayEls = scene.value.querySelectorAll('[data-ray]')
-  const labelEls = scene.value.querySelectorAll('[data-ray-label]')
+  const rayEls = [...scene.value.querySelectorAll('[data-ray]')]
+  const rayDots = [...scene.value.querySelectorAll('[data-ray-dot]')]
+  const labelEls = [...scene.value.querySelectorAll('[data-ray-label]')]
   const core = scene.value.querySelector('[data-core]')
 
+  if (reduced) {
+    beams.forEach((el) => (el.style.strokeDashoffset = '0'))
+    beamDots.forEach((el) => (el.style.opacity = '1'))
+    rayEls.forEach((el) => {
+      el.style.strokeDashoffset = '0'
+      el.style.opacity = '1'
+    })
+    rayDots.forEach((el) => (el.style.opacity = '1'))
+    labelEls.forEach((el) => {
+      el.style.opacity = '1'
+      el.style.transform = 'none'
+    })
+    for (const el of [prism, core]) {
+      if (!el) continue
+      el.style.opacity = '1'
+      el.style.transform = 'none'
+    }
+    return
+  }
+
   animate(prism, { opacity: [0, 1], scale: [0.86, 1] }, { duration: 0.9, ease: [0.16, 1, 0.3, 1] })
-  animate(beam, { strokeDashoffset: [1, 0] }, { duration: 0.9, delay: 0.35, ease: 'easeOut' })
+  animate(beams, { strokeDashoffset: [1, 0] }, { duration: 0.9, delay: 0.35, ease: 'easeOut' })
+  animate(beamDots, { opacity: [0, 1] }, { duration: 0.45, delay: 1.05 })
   animate(core, { opacity: [0, 1], scale: [0, 1] }, { duration: 0.5, delay: 1.15 })
   animate(
     rayEls,
@@ -74,9 +104,14 @@ onMounted(() => {
     { duration: 1, delay: stagger(0.09, { startDelay: 1.2 }), ease: [0.16, 1, 0.3, 1] },
   )
   animate(
+    rayDots,
+    { opacity: [0, 1] },
+    { duration: 0.45, delay: stagger(0.09, { startDelay: 1.7 }) },
+  )
+  animate(
     labelEls,
     { opacity: [0, 1], x: [-8, 0] },
-    { duration: 0.6, delay: stagger(0.09, { startDelay: 1.7 }) },
+    { duration: 0.6, delay: stagger(0.09, { startDelay: 1.8 }) },
   )
 })
 </script>
@@ -174,97 +209,282 @@ onMounted(() => {
             <defs>
               <linearGradient id="hero-edge" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0" stop-color="#6F9BFF" />
-                <stop offset="0.5" stop-color="#B794FF" />
+                <stop offset="0.48" stop-color="#B794FF" />
                 <stop offset="1" stop-color="#FFC24B" />
               </linearGradient>
-              <linearGradient id="hero-face" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="#8B5CF6" stop-opacity="0.28" />
-                <stop offset="1" stop-color="#2D6BFF" stop-opacity="0.06" />
+              <linearGradient id="hero-edge-highlight" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9" />
+                <stop offset="0.4" stop-color="#B794FF" stop-opacity="0.32" />
+                <stop offset="1" stop-color="#2D6BFF" stop-opacity="0" />
               </linearGradient>
+              <linearGradient id="hero-face" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#8B5CF6" stop-opacity="0.34" />
+                <stop offset="0.48" stop-color="#2D6BFF" stop-opacity="0.12" />
+                <stop offset="1" stop-color="#05091A" stop-opacity="0.06" />
+              </linearGradient>
+              <linearGradient id="hero-facet-left" x1="0" y1="1" x2="1" y2="0">
+                <stop offset="0" stop-color="#2D6BFF" stop-opacity="0.04" />
+                <stop offset="1" stop-color="#B794FF" stop-opacity="0.22" />
+              </linearGradient>
+              <linearGradient id="hero-facet-right" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.08" />
+                <stop offset="1" stop-color="#8B5CF6" stop-opacity="0.16" />
+              </linearGradient>
+              <linearGradient
+                v-for="ray in rays"
+                :id="`hero-ray-${ray.key}`"
+                :key="`gradient-${ray.key}`"
+                gradientUnits="userSpaceOnUse"
+                x1="350"
+                y1="215"
+                :x2="ray.x2"
+                :y2="ray.y2"
+              >
+                <stop offset="0" :stop-color="ray.color" stop-opacity="0.95" />
+                <stop offset="0.55" :stop-color="ray.color" stop-opacity="0.72" />
+                <stop offset="1" :stop-color="ray.color" stop-opacity="0.2" />
+              </linearGradient>
+              <radialGradient id="hero-ambient" cx="50%" cy="50%" r="50%">
+                <stop offset="0" stop-color="#8B5CF6" stop-opacity="0.22" />
+                <stop offset="0.55" stop-color="#2D6BFF" stop-opacity="0.08" />
+                <stop offset="1" stop-color="#05091A" stop-opacity="0" />
+              </radialGradient>
+              <radialGradient id="hero-caustic" cx="50%" cy="50%" r="50%">
+                <stop offset="0" stop-color="#B794FF" stop-opacity="0.5" />
+                <stop offset="0.55" stop-color="#2D6BFF" stop-opacity="0.16" />
+                <stop offset="1" stop-color="#2D6BFF" stop-opacity="0" />
+              </radialGradient>
+              <radialGradient id="hero-core" cx="50%" cy="50%" r="50%">
+                <stop offset="0" stop-color="#FFFFFF" />
+                <stop offset="0.28" stop-color="#FFFFFF" stop-opacity="0.95" />
+                <stop offset="0.6" stop-color="#B794FF" stop-opacity="0.5" />
+                <stop offset="1" stop-color="#8B5CF6" stop-opacity="0" />
+              </radialGradient>
               <filter id="hero-glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="9" result="b" />
+                <feGaussianBlur stdDeviation="5.5" result="b" />
                 <feMerge>
                   <feMergeNode in="b" />
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>
               </filter>
+              <filter id="hero-soft" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation="14" />
+              </filter>
+              <filter id="hero-shadow" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation="10" />
+              </filter>
             </defs>
 
-            <!-- feixe branco -->
-            <path
-              data-beam
-              d="M8 168 L250 215"
-              stroke="currentColor"
-              class="text-ink"
-              stroke-width="5"
-              stroke-linecap="round"
-              pathLength="1"
-              stroke-dasharray="1"
-              style="stroke-dashoffset: 1"
-              filter="url(#hero-glow)"
+            <circle cx="350" cy="215" r="180" fill="url(#hero-ambient)" />
+            <circle
+              cx="350"
+              cy="215"
+              r="132"
+              fill="none"
+              stroke="url(#hero-edge)"
+              stroke-width="0.7"
+              stroke-opacity="0.12"
+              stroke-dasharray="2 8"
             />
-            <text x="14" y="150" class="fill-current text-[12px] text-ink-muted font-display">
-              o fato
-            </text>
 
-            <!-- espectro -->
-            <g filter="url(#hero-glow)">
+            <!-- feixe branco -->
+            <g>
               <path
-                v-for="ray in rays"
-                :key="ray.key"
-                data-ray
-                :d="ray.d"
-                :stroke="ray.color"
-                stroke-width="4"
+                data-beam
+                d="M8 168 L250 215"
+                stroke="#6F9BFF"
+                stroke-opacity="0.16"
+                stroke-width="18"
                 stroke-linecap="round"
                 pathLength="1"
                 stroke-dasharray="1"
-                style="stroke-dashoffset: 1; opacity: 0"
+                stroke-dashoffset="1"
+                filter="url(#hero-soft)"
+              />
+              <path
+                data-beam
+                d="M8 168 L250 215"
+                stroke="url(#hero-edge)"
+                stroke-opacity="0.9"
+                stroke-width="6"
+                stroke-linecap="round"
+                pathLength="1"
+                stroke-dasharray="1"
+                stroke-dashoffset="1"
+                filter="url(#hero-glow)"
+              />
+              <path
+                data-beam
+                d="M8 168 L250 215"
+                stroke="#FFFFFF"
+                stroke-width="2"
+                stroke-linecap="round"
+                pathLength="1"
+                stroke-dasharray="1"
+                stroke-dashoffset="1"
               />
             </g>
+            <circle
+              data-beam-dot
+              cx="8"
+              cy="168"
+              r="3.2"
+              fill="#FFFFFF"
+              filter="url(#hero-glow)"
+              style="opacity: 0"
+            />
+            <text
+              x="14"
+              y="150"
+              class="fill-current text-[10px] font-display uppercase tracking-[0.18em] text-ink-muted"
+            >
+              O fato
+            </text>
+            <line
+              x1="14"
+              y1="158"
+              x2="46"
+              y2="158"
+              stroke="currentColor"
+              stroke-opacity="0.25"
+              class="text-ink-muted"
+            />
+
+            <!-- espectro -->
+            <g filter="url(#hero-glow)">
+              <g v-for="ray in rays" :key="`ray-${ray.key}`">
+                <path
+                  data-ray
+                  :d="ray.d"
+                  :stroke="ray.color"
+                  stroke-width="9"
+                  stroke-opacity="0.18"
+                  stroke-linecap="round"
+                  pathLength="1"
+                  stroke-dasharray="1"
+                  stroke-dashoffset="1"
+                  style="opacity: 0"
+                />
+                <path
+                  data-ray
+                  :d="ray.d"
+                  :stroke="`url(#hero-ray-${ray.key})`"
+                  stroke-width="2.6"
+                  stroke-linecap="round"
+                  pathLength="1"
+                  stroke-dasharray="1"
+                  stroke-dashoffset="1"
+                  style="opacity: 0"
+                />
+              </g>
+            </g>
+
+            <circle
+              v-for="ray in rays"
+              :key="`dot-${ray.key}`"
+              data-ray-dot
+              :cx="ray.x2"
+              :cy="ray.y2"
+              r="2.4"
+              :fill="ray.color"
+              filter="url(#hero-glow)"
+              style="opacity: 0"
+            />
 
             <g class="font-display">
-              <text
-                v-for="ray in rays"
-                :key="`l-${ray.key}`"
-                data-ray-label
-                x="584"
-                :y="ray.ly + 4"
-                class="text-[13px]"
-                :fill="ray.color"
-                style="opacity: 0"
-              >
-                {{ ray.label }}
-              </text>
+              <g v-for="ray in rays" :key="`l-${ray.key}`" data-ray-label style="opacity: 0">
+                <line
+                  x1="568"
+                  x2="576"
+                  :y1="ray.ly"
+                  :y2="ray.ly"
+                  :stroke="ray.color"
+                  stroke-width="1.4"
+                  stroke-opacity="0.55"
+                />
+                <text
+                  x="584"
+                  :y="ray.ly + 4"
+                  class="text-[10px] uppercase tracking-[0.14em]"
+                  :fill="ray.color"
+                  fill-opacity="0.82"
+                >
+                  {{ ray.label }}
+                </text>
+              </g>
             </g>
 
             <!-- prisma -->
             <g data-prism style="opacity: 0; transform-origin: 300px 215px">
+              <ellipse
+                cx="300"
+                cy="344"
+                rx="78"
+                ry="11"
+                fill="#05091A"
+                opacity="0.55"
+                filter="url(#hero-shadow)"
+              />
               <path d="M300 104 L404 322 L196 322 Z" fill="url(#hero-face)" />
+              <path d="M300 104 L350 215 L196 322 Z" fill="url(#hero-facet-left)" />
+              <path d="M300 104 L350 215 L404 322 Z" fill="url(#hero-facet-right)" />
+              <ellipse
+                cx="350"
+                cy="215"
+                rx="34"
+                ry="22"
+                fill="url(#hero-caustic)"
+                opacity="0.8"
+                filter="url(#hero-glow)"
+              />
               <path
                 d="M300 104 L404 322 L196 322 Z"
                 fill="none"
                 stroke="url(#hero-edge)"
-                stroke-width="3"
+                stroke-width="2.6"
                 stroke-linejoin="round"
               />
               <path
-                d="M300 104 L300 322"
+                d="M300 104 L196 322"
+                fill="none"
+                stroke="url(#hero-edge-highlight)"
+                stroke-width="1.2"
+                stroke-linecap="round"
+              />
+              <path
+                d="M300 104 L350 215 L404 322"
+                fill="none"
+                stroke="#FFFFFF"
+                stroke-opacity="0.14"
+                stroke-width="0.8"
+              />
+              <path
+                d="M196 322 L350 215"
+                fill="none"
+                stroke="#FFFFFF"
+                stroke-opacity="0.08"
+                stroke-width="0.8"
+              />
+              <path
+                d="M196 322 L404 322"
                 stroke="url(#hero-edge)"
-                stroke-width="1"
-                stroke-opacity="0.3"
+                stroke-width="0.8"
+                stroke-opacity="0.25"
+              />
+              <circle
+                cx="300"
+                cy="104"
+                r="2.4"
+                fill="#FFFFFF"
+                opacity="0.9"
+                filter="url(#hero-glow)"
               />
             </g>
 
-            <circle
-              data-core
-              cx="350"
-              cy="215"
-              r="7"
-              fill="currentColor"
-              class="text-ink"
-              style="opacity: 0"
-            />
+            <g data-core style="opacity: 0; transform-origin: 350px 215px">
+              <circle cx="350" cy="215" r="18" fill="url(#hero-core)" filter="url(#hero-glow)" />
+              <circle cx="350" cy="215" r="3.2" fill="#FFFFFF" />
+            </g>
 
             <!-- anel pulsante -->
             <circle
@@ -276,6 +496,16 @@ onMounted(() => {
               stroke-opacity="0.5"
               class="animate-pulse-ring"
               style="transform-origin: 350px 215px"
+            />
+            <circle
+              cx="350"
+              cy="215"
+              r="28"
+              fill="none"
+              stroke="url(#hero-edge)"
+              stroke-opacity="0.24"
+              class="animate-pulse-ring"
+              style="transform-origin: 350px 215px; animation-delay: 1.6s"
             />
           </svg>
         </div>

@@ -55,7 +55,8 @@ Formato obrigatório:
       "kind": "Documento|Dado|Declaração|Link|Outro",
       "strength": "forte|média|fraca",
       "label": "o que sustenta a afirmação",
-      "note": "por que essa classificação"
+      "note": "por que essa classificação",
+      "quote": "trecho literal do texto que comprova a evidência (até 240 caracteres)"
     }
   ],
   "signals": [{ "label": "sinal observado", "ok": true }],
@@ -73,6 +74,7 @@ Critérios:
 - Narrativa mede a força do enquadramento escolhido.
 - Confiança e sourceDiversity são números de 0 a 100.
 - Retorne de 4 a 6 signals.
+- O campo "quote" copia literalmente um trecho do texto, com no máximo 240 caracteres. Use "" quando a evidência não tiver trecho citável.
 - Não invente fatos, números, fontes ou declarações que não estejam no texto.
 - Se o texto for curto ou não for uma notícia, reduza a confiança e diga isso no resumo.`
 
@@ -360,7 +362,7 @@ function capitalize(value) {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : value
 }
 
-function normalizeAnalysis(raw, article) {
+export function normalizeAnalysis(raw, article) {
   const source = raw && typeof raw === 'object' ? raw : {}
   const dna = {}
   for (const key of DNA_KEYS) {
@@ -393,6 +395,7 @@ function normalizeAnalysis(raw, article) {
           strength: ['forte', 'média', 'fraca'].includes(item.strength) ? item.strength : 'média',
           label: cleanText(item.label, 'Evidência não detalhada'),
           note: cleanText(item.note),
+          quote: cleanText(item.quote).slice(0, 300),
         }))
     : []
 
@@ -797,9 +800,10 @@ async function assignCluster(admin, { newsId, topicId, topicLabel, embedding, pr
   return { clusterId: cluster.id, clusterSize }
 }
 
-async function persistAnalysis(article, analysis) {
+async function persistAnalysis(article, analysis, topicOverride = '') {
   const admin = getAdmin()
   const frame = FRAMES[analysis.dominantFrame]
+  const topicLabel = topicOverride || analysis.topic
 
   const sourceId = await getOrCreateTaxonomy(admin, 'sources', {
     name: analysis.outlet,
@@ -807,8 +811,8 @@ async function persistAnalysis(article, analysis) {
     scope: 'nacional',
   })
   const topicId = await getOrCreateTaxonomy(admin, 'topics', {
-    label: analysis.topic,
-    slug: slugify(analysis.topic) || 'noticia',
+    label: topicLabel,
+    slug: slugify(topicLabel) || 'noticia',
     accent: frame.accent,
     frame_keys: [analysis.dominantFrame],
   })
@@ -895,7 +899,7 @@ async function persistAnalysis(article, analysis) {
     const grouped = await assignCluster(admin, {
       newsId,
       topicId,
-      topicLabel: analysis.topic,
+      topicLabel,
       embedding,
       previousClusterId: existingNews?.cluster_id ?? null,
     })
@@ -909,6 +913,7 @@ async function persistAnalysis(article, analysis) {
     id: analysisId,
     url: article.url,
     ...analysis,
+    topic: topicLabel,
     clusterId,
     clusterSize,
   }
@@ -922,6 +927,13 @@ export default async function handler(req) {
     const body = await req.json().catch(() => null)
     const url = normalizeUrl(body?.url)
     if (!url) return json({ error: 'Informe uma URL http(s) pública e válida.' }, 400)
+
+    // Tema pesquisado pelo usuário: a matéria é gravada sob ele para que a
+    // comparação da página continue disponível ao recarregar.
+    const topicOverride = String(body?.topic ?? '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 120)
 
     const cached = await findCached(url)
     if (cached) return json({ analysis: cached, cached: true })
@@ -945,7 +957,7 @@ export default async function handler(req) {
     }
 
     const analysis = await analyzeWithAI(article)
-    const saved = await persistAnalysis(article, analysis)
+    const saved = await persistAnalysis(article, analysis, topicOverride)
     return json({ analysis: saved, cached: false })
   } catch (error) {
     console.error('[analyze-url]', error)

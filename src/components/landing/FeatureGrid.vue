@@ -1,5 +1,5 @@
 <script setup>
-/** Recursos-assinatura: Comparação, BlindSpot, Replay, Mapa, App e Extensão. */
+/** Recursos-assinatura: Comparação, Mapa, App e Extensão. */
 import PBadge from '@/components/ui/PBadge.vue'
 import PCard from '@/components/ui/PCard.vue'
 import SectionHeading from '@/components/ui/SectionHeading.vue'
@@ -17,26 +17,10 @@ const features = [
     badge: null,
   },
   {
-    to: '/blindspot',
-    tag: 'Cap. 6',
-    title: 'BlindSpot Brasil',
-    text: 'Quem deixou esse tema de fora? A ausência de cobertura é medida sempre dentro de um período definido.',
-    accent: '#FF3B5C',
-    badge: 'Marca registrada',
-  },
-  {
-    to: '/replay',
-    tag: 'Cap. 7',
-    title: 'Prisma Replay',
-    text: 'Assista à evolução da narrativa quadro a quadro. É quase um Google Maps da notícia.',
-    accent: '#FFC24B',
-    badge: null,
-  },
-  {
     to: '/mapa',
     tag: 'Moat',
     title: 'Mapa de Polarização',
-    text: 'Inteligência nacional sobre narrativas: temas dominantes e enquadramentos por estado, em tempo real.',
+    text: 'Inteligência sobre narrativas: temas dominantes e divergência de enquadramento por estado.',
     accent: '#8B5CF6',
     badge: 'Exclusivo',
   },

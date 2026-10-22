@@ -15,7 +15,7 @@ const palette = [
   { name: 'Midnight', hex: '#05091A', use: 'Fundo padrão da marca', core: true },
   { name: 'Electric Blue', hex: '#2D6BFF', use: 'Ação primária e dados', core: true },
   { name: 'Prism Purple', hex: '#8B5CF6', use: 'Inteligência e IA', core: true },
-  { name: 'Energy Red', hex: '#FF3B5C', use: 'Alerta e BlindSpot', core: true },
+  { name: 'Energy Red', hex: '#FF3B5C', use: 'Alerta e sinais', core: true },
   { name: 'Insight Gold', hex: '#FFC24B', use: 'Descoberta e destaque', core: true },
   {
     name: 'Signal Mint',

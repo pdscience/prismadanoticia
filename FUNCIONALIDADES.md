@@ -28,8 +28,8 @@ cola o link de uma notícia e recebe:
 - cartão compartilhável em PNG.
 
 O sistema também oferece telas de comparação entre veículos, cobertura por distribuição de
-enquadramento, detecção de blindspots, replay da narrativa, mapa de polarização por estado e uma
-apresentação institucional da marca e da tecnologia.
+enquadramento, mapa de polarização por estado e uma apresentação institucional da marca e da
+tecnologia.
 
 ### Fluxo principal
 
@@ -62,9 +62,7 @@ DNA, confiança, evidências, cluster e cartão viral
 | `/analise`    | Análise de notícia     | Implementada; IA e banco reais                     |
 | `/vies`       | Radar de Enquadramento | Implementada; estimativa do texto e indícios       |
 | `/comparacao` | Comparação de veículos | Implementada; dados reais com fallback             |
-| `/cobertura`  | Cobertura da História  | Implementada; distribuição e blindspot             |
-| `/blindspot`  | BlindSpot Brasil       | Implementada; dados reais com fallback             |
-| `/replay`     | Prisma Replay          | Implementada; dados reais com fallback             |
+| `/cobertura`  | Cobertura da História  | Implementada; distribuição e alerta de ponto cego  |
 | `/mapa`       | Mapa de Polarização    | Implementada; dados reais com fallback             |
 | `/tecnologia` | Tecnologia e produto   | Vitrine conceitual                                 |
 | `/marca`      | Brand Book             | Vitrine institucional                              |
@@ -75,7 +73,9 @@ DNA, confiança, evidências, cluster e cartão viral
 - Hero animado com a proposta “Uma notícia. Vários ângulos.”.
 - Explicação do funcionamento em etapas.
 - Radar de demonstração do DNA.
-- Cartões de tendências com temas, volume de veículos, matérias, variação e enquadramentos.
+- Cartões de tendências com temas, volume de veículos, matérias, variação e enquadramentos, lidos de
+  `trend_feed` na janela real de 7 dias.
+- Número de veículos analisados no hero, lido de `stats_feed`.
 - Seções de recursos, moat, manifesto da marca e estratégia viral.
 - Cartão de compartilhamento gerado a partir da análise de exemplo.
 - CTAs para analisar uma notícia e conhecer a tecnologia.
@@ -101,9 +101,9 @@ DNA, confiança, evidências, cluster e cartão viral
   - diversidade de fontes;
   - radar interativo do DNA;
   - barras dos seis indicadores;
-  - evidências com força `forte`, `média` ou `fraca`;
+  - evidências com força `forte`, `média` ou `fraca` e o trecho literal que as sustenta;
   - sinais editoriais positivos e negativos;
-  - atalhos para Comparação, BlindSpot e Replay;
+  - atalho para Comparação;
   - cartão viral com download em PNG 1080×1080 e cópia do texto.
 
 **Fonte dos dados:** `analysis_feed` para URLs já analisadas, `perspective_feed` para as
@@ -112,52 +112,28 @@ substituída por resultado fictício; o painel de perspectivas fica vazio em vez
 
 ### 2.3 Comparação Inteligente (`/comparacao`)
 
-- Busca por tema.
+- Busca por tema na internet: a Edge Function `search-web` consulta o motor de busca do OpenRouter
+  e devolve matérias reais sobre o tema.
+- Seleção das matérias: até 4 matérias, uma por veículo, com portais de governo, enciclopédias, blogs
+  e redes sociais descartados.
+- Análise das matérias escolhidas com o mesmo Engine da Análise (extração, DNA, cluster) e
+  comparação montada sobre as análises geradas.
 - Tabela de veículos com destaque, ângulo predominante, tom e Índice Prisma.
 - Seleção de um veículo para comparar seu DNA com a média do cluster.
 - Radar sobreposto: veículo selecionado × média do cluster.
 - Ranking dos eixos com maior divergência entre veículos.
 - Leitura editorial resumida.
-- Atalhos para BlindSpot e Replay.
 
-**Fonte dos dados:** `analysis_feed` filtrado por `topic_slug`. A tela descarta as fixtures de
-`exemplo.com.br`, mantém uma matéria por veículo (a mais recente; em empate, a de maior confiança) e
-calcula a contagem de veículos e a janela a partir das datas reais. Se o tema não tiver dados
-suficientes, usa a fixture local, sinaliza “dados de demonstração” e informa qual tema de exemplo
-está sendo exibido.
+**Fonte dos dados:** `analysis_feed` filtrado por `topic_slug` na carga inicial; a busca web usa a
+Edge Function `search-web` (com cache de 24 h em `web_searches`) e a Edge Function `analyze-url`
+para as matérias novas. A tela descarta as fixtures de `exemplo.com.br`, mantém uma matéria por
+veículo (a mais recente; em empate, a de maior confiança) e calcula a contagem de veículos e a
+janela a partir das datas reais. Se o tema não tiver dados suficientes, usa a fixture local,
+sinaliza “dados de demonstração” e informa qual tema de exemplo está sendo exibido.
 
-### 2.4 BlindSpot Brasil (`/blindspot`)
+### 2.4 Mapa de Polarização (`/mapa`)
 
-- Busca por tema.
-- Seletor de silêncio mínimo: 7, 15, 30 ou 90 dias.
-- Indicador de confiabilidade crescente conforme o período aumenta.
-- Lista de veículos que cobriram o tema, com volume de matérias.
-- Lista de veículos sem publicação por pelo menos o período selecionado, com alcance,
-  severidade e última menção.
-- Barras de subtemas pouco explorados.
-- Aviso metodológico explícito: silêncio prolongado não implica intenção editorial.
-- Atalhos para Comparação e Mapa.
-
-**Fonte dos dados:** `blindspot_reports`, `blindspot_coverage`, `blindspot_gaps` e
-`blindspot_subthemes`, com fallback local. Os volumes de cobertura e os subtemas vêm do relatório
-de referência (30 dias no seed); o seletor de período define o tempo mínimo de silêncio usado para
-filtrar a lista de blindspots.
-
-### 2.5 Prisma Replay (`/replay`)
-
-- Player com play/pause e avanço automático entre quadros.
-- Linha do tempo arrastável.
-- Quadros com horário, rótulo, veículos, enquadramento dominante e sentimento.
-- Descrição da evolução da narrativa em cada quadro.
-- Barra de mistura de enquadramentos.
-- Gráfico de expansão da cobertura por número de veículos.
-- Atalhos para Comparação e BlindSpot.
-
-**Fonte dos dados:** `replay_events`, com fallback local.
-
-### 2.6 Mapa de Polarização (`/mapa`)
-
-- Cartograma com as 27 unidades federativas.
+- Mapa real do Brasil sobre tiles do OpenStreetMap, com as 27 unidades federativas coloridas.
 - Modos de visualização:
   - tema dominante;
   - índice de polarização;
@@ -170,10 +146,15 @@ filtrar a lista de blindspots.
 - Total de veículos monitorados.
 - Contexto de uso para imprensa, universidades, institutos e API.
 
-**Fonte dos dados:** `state_metrics`, com fallback local. O cartograma, o painel do estado, o
-ranking e a mistura nacional usam o mesmo conjunto carregado por `fetchStates()`.
+**Fonte dos dados:** `state_metrics`, com fallback local. O mapa, o painel do estado, o ranking e a
+mistura nacional usam o mesmo conjunto carregado por `fetchStates()`. Os contornos das UFs vêm do
+GeoJSON local em `src/data/geo/brazil-states.js` (IBGE, ODbL) e a base cartográfica do
+OpenStreetMap.
 
-### 2.7 Tecnologia (`/tecnologia`)
+**Limite:** os valores por UF são uma agregação de referência, não uma medição de opinião pública.
+A tela não promete leitura por grupo de veículos nem atualização em tempo real.
+
+### 2.5 Tecnologia (`/tecnologia`)
 
 Vitrine conceitual da arquitetura:
 
@@ -188,7 +169,7 @@ Vitrine conceitual da arquitetura:
 > Esta tela apresenta a visão de produto. A extensão Chrome, notificações e favoritos ainda não
 > estão publicados.
 
-### 2.8 Brand Book (`/marca`)
+### 2.6 Brand Book (`/marca`)
 
 - DNA e arquétipos da marca.
 - Logo nas versões horizontal, vertical e ícone.
@@ -196,11 +177,11 @@ Vitrine conceitual da arquitetura:
 - Tipografia Space Grotesk + Inter.
 - Estrutura do pitch deck de 20 slides.
 
-### 2.9 404
+### 2.7 404
 
 - Página “Este ângulo não existe.” com retorno para a home e para a análise.
 
-### 2.10 Radar de Enquadramento (`/vies`)
+### 2.8 Radar de Enquadramento (`/vies`)
 
 - Campo para colar a URL de uma notícia já analisada.
 - Leitura da orientação do texto em duas escalas independentes:
@@ -219,13 +200,15 @@ Vitrine conceitual da arquitetura:
     ausência de contraditório e conclusão unilateral;
   - trecho literal e explicação para cada sinal.
 - Lista de evidências citadas do texto.
+- Sem URL na rota, a tela carrega o enquadramento real mais recente já calculado; quando não há
+  dado, exibe o selo “exemplo ilustrativo”.
 - Bloco de metodologia e limites: não é checagem de fatos e não classifica o veículo de forma
   permanente.
-- Atalhos para DNA completo, Comparação e BlindSpot.
+- Atalhos para DNA completo e Comparação.
 - Cache por matéria e versão da metodologia; o limite é 20 análises de viés por IP/hora e 100
   globais/hora.
 
-### 2.11 Cobertura da História (`/cobertura`)
+### 2.9 Cobertura da História (`/cobertura`)
 
 - Campo para abrir uma matéria já analisada por URL.
 - Link direto por cluster vindo da Análise, da Comparação ou do card de perspectivas.
@@ -252,9 +235,10 @@ usa fallback fictício.
 - **Rotas com lazy loading:** cada tela é carregada sob demanda.
 - **Títulos de página por rota:** atualização automática de `document.title`.
 - **PWA:** manifest, ícones, instalação e cache do app shell/fontes.
-- **Fallback de dados:** telas de leitura usam fixtures quando o backend falha, sem quebrar a
-  navegação. Comparação, BlindSpot e Replay exibem o selo “dados de demonstração”; quando a busca
-  não encontra um cluster ou relatório, a tela informa qual exemplo está sendo mostrado.
+- **Fallback de dados:** a comparação usa fixtures quando o backend falha e exibe o selo “dados de
+  demonstração”, informando qual exemplo está sendo mostrado. A análise de URL nova, o Radar de
+  Enquadramento e as tendências não fabricam resultado em produção: elas mostram estado de erro ou
+  estado vazio.
 - **Acessibilidade:** rótulos ARIA, `sr-only`, navegação por teclado e tabelas semânticas.
 - **Cartão viral:** SVG com radar, exportação em PNG e cópia de texto para redes sociais.
 
@@ -319,11 +303,8 @@ Projeto InsForge **Prismadanoticia**, PostgreSQL com pgvector.
 | `analysis_feed`        | View pública que junta análise, notícia, fonte, tema e cluster |
 | `perspective_feed`     | View pública de coberturas do cluster por enquadramento        |
 | `state_metrics`        | Indicadores por UF para o mapa                                 |
-| `replay_events`        | Quadros da evolução da narrativa                               |
-| `blindspot_reports`    | Relatórios de blindspot por tema                               |
-| `blindspot_coverage`   | Veículos que cobriram o tema                                   |
-| `blindspot_gaps`       | Veículos ausentes e severidade                                 |
-| `blindspot_subthemes`  | Subtemas e percentual de cobertura                             |
+| `trend_feed`           | View pública com a cobertura real por tema nos últimos 7 dias  |
+| `stats_feed`           | View pública com a contagem real de veículos, análises e temas |
 | `analysis_requests`    | Registros de rate limit por IP e URL                           |
 | `bias_analyses`        | Eixos, confiança, veículo estimado e sinais de enquadramento   |
 | `source_bias_profiles` | Perfis curados de veículos (estrutura pronta, sem seed real)   |
@@ -382,13 +363,14 @@ npm run build
 
 ### Já implementado
 
-- Landing, análise, comparação, BlindSpot, Replay, mapa, tecnologia, marca e 404.
+- Landing, análise, enquadramento, comparação, cobertura, mapa, tecnologia, marca e 404.
 - Análise real por URL com IA.
 - Cache de análises.
 - Embeddings e clusters semânticos.
 - Perspectivas por lado do enquadramento dentro do cluster, com lados ausentes e aviso de amostra
   pequena.
-- Cobertura da História com distribuição percentual, blindspot e rating curado como contexto.
+- Cobertura da História com distribuição percentual, alerta de ponto cego e rating curado como
+  contexto.
 - Rate limit por IP e global.
 - Radar de Enquadramento com escalas econômica/social, estimativa do veículo e indícios de
   distorção.
@@ -397,6 +379,11 @@ npm run build
 - Cartão compartilhável em PNG.
 - Tema claro/escuro.
 - Deploy em produção.
+
+### Aposentado
+
+- BlindSpot Brasil e Prisma Replay saíram do produto. As telas foram removidas e as rotas antigas
+  caem no 404. As tabelas `blindspot_*` e `replay_events` permanecem no banco, sem uso pelo front.
 
 ### Roadmap / ainda não publicado
 
@@ -410,6 +397,7 @@ npm run build
 - Monitoramento de custo do OpenRouter.
 - Domínio customizado.
 - API pública por UF.
+- Séries temporais de cobertura por tema (extensão natural do Replay aposentado).
 
 ---
 

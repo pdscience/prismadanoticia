@@ -10,7 +10,7 @@ import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
 import ScoreRing from '@/components/ui/ScoreRing.vue'
 import { BIAS_LABELS, biasColor, textConfidence } from '@/lib/bias'
-import { fetchBiasAnalysis, fetchBiasSample } from '@/lib/services'
+import { fetchBiasAnalysis, fetchBiasSample, fetchLatestBias } from '@/lib/services'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +24,7 @@ const steps = [
 
 const input = ref(String(route.query.url || ''))
 const bias = ref(fetchBiasSample())
+const isSample = ref(true)
 const loading = ref(false)
 const activeStep = ref(-1)
 const error = ref('')
@@ -84,6 +85,7 @@ async function runAnalysis(url) {
 
   try {
     bias.value = await fetchBiasAnalysis(url)
+    isSample.value = false
     activeStep.value = steps.length
   } catch (cause) {
     error.value =
@@ -92,6 +94,14 @@ async function runAnalysis(url) {
     stopSteps()
     loading.value = false
   }
+}
+
+/** Sem URL na rota, mostra o enquadramento real mais recente já calculado. */
+async function loadLatest() {
+  const latest = await fetchLatestBias()
+  if (!latest) return
+  bias.value = latest
+  isSample.value = false
 }
 
 function submit() {
@@ -105,6 +115,7 @@ function useSample() {
   stopSteps()
   input.value = ''
   bias.value = fetchBiasSample()
+  isSample.value = true
   activeStep.value = -1
   error.value = ''
   router.replace({ name: 'bias' })
@@ -122,6 +133,7 @@ watch(
 
 onMounted(() => {
   if (input.value) runAnalysis(input.value)
+  else loadLatest()
 })
 
 onBeforeUnmount(stopSteps)
@@ -207,6 +219,7 @@ onBeforeUnmount(stopSteps)
               <div class="flex flex-wrap items-center gap-2">
                 <PBadge color="#8B5CF6">{{ bias.topic }}</PBadge>
                 <PBadge :color="labelColor">Texto: {{ label }}</PBadge>
+                <PBadge v-if="isSample" color="#FFC24B">Exemplo ilustrativo</PBadge>
                 <span class="text-xs text-ink-muted"
                   >metodologia {{ bias.methodologyVersion }}</span
                 >
@@ -373,7 +386,6 @@ onBeforeUnmount(stopSteps)
             Ver DNA completo
           </PButton>
           <PButton to="/comparacao" variant="outline" size="sm">Comparar coberturas</PButton>
-          <PButton to="/blindspot" variant="outline" size="sm">Ver BlindSpot</PButton>
         </div>
       </div>
     </div>

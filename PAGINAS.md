@@ -13,15 +13,13 @@ produto por capacidade, e [`README.md`](./README.md), que cobre setup e deploy.
 | `/vies`       | Qual é o enquadramento do texto e quais indícios ele traz?  | `bias_feed` + Edge Function `analyze-bias`           |
 | `/comparacao` | Como veículos diferentes trataram o mesmo cluster?          | `analysis_feed` por `topic_slug`                     |
 | `/cobertura`  | Como os veículos cobriram esta história e qual lado faltou? | `analysis_feed` + `perspective_feed` + perfis        |
-| `/blindspot`  | Quem está em silêncio sobre este tema?                      | Tabelas `blindspot_*`                                |
-| `/replay`     | Como a narrativa mudou ao longo do tempo?                   | `replay_events`                                      |
 | `/mapa`       | Quais temas dominam e polarizam cada UF?                    | `state_metrics`                                      |
 | `/tecnologia` | Como o produto é construído e para onde vai?                | Conteúdo conceitual                                  |
 | `/marca`      | Qual é a identidade visual e narrativa da marca?            | Conteúdo conceitual                                  |
 | `*`           | O ângulo existe?                                            | Nenhum dado externo                                  |
 
-O menu principal expõe Análise, Enquadramento, Comparação, Cobertura, BlindSpot, Replay, Mapa e
-Tecnologia. O rodapé também aponta para o Brand Book e para âncoras internas de Tecnologia e Marca.
+O menu principal expõe Análise, Enquadramento, Comparação, Cobertura, Mapa e Tecnologia. O rodapé
+também aponta para o Brand Book e para âncoras internas de Tecnologia e Marca.
 
 ---
 
@@ -42,8 +40,8 @@ manifesto da marca e a estratégia de cartão viral.
 - Os números do hero (veículos, eixos e UFs) são argumentos de produto, não uma contagem ao vivo.
 - A seção de PWA e extensão antecipa recursos que ainda não estão publicados.
 
-**Limite:** a landing combina dados reais de tendências e exemplo com conteúdo conceitual. Ela não
-é uma página de status operacional.
+**Limite:** a landing combina dados reais de tendências, contagem de veículos e exemplo com
+conteúdo conceitual. Ela não é uma página de status operacional.
 
 ---
 
@@ -76,6 +74,7 @@ compartilhável.
   quando há menos de três veículos.
 - O agrupamento usa o `text_label` estimado de cada texto; ele não é um rating permanente do
   veículo e não transforma ausência em prova de omissão editorial.
+- Cada evidência mostra o trecho literal que a sustenta, quando o modelo devolve a citação.
 - A legenda expansível **Como ler esta análise** explica as faixas, os seis eixos, as evidências,
   as perspectivas e os sinais; ela deixa explícito que as métricas não são checagem de fatos.
 
@@ -92,6 +91,8 @@ indícios retóricos de distorção.
 - Se a matéria ainda não foi analisada, chama `analyze-url` e depois `analyze-bias`.
 - A Edge Function `analyze-bias` lê o texto já salvo, chama o OpenRouter e grava `bias_analyses`.
 - O limite é de 20 análises novas por IP/hora e 100 globais/hora; cache não consome cota.
+- Sem URL na rota, a tela carrega o enquadramento real mais recente já calculado (`bias_feed`); se
+  não houver dado, ela mostra `BIAS_SAMPLE` com o selo **exemplo ilustrativo**.
 - Em modo mock, a tela mostra `BIAS_SAMPLE`.
 - Em produção, uma falha real não é mascarada por uma fixture.
 
@@ -115,7 +116,16 @@ indícios retóricos de distorção.
 
 **Dados e comportamento:**
 
-- Busca por tema, normaliza para `slug` e lê `analysis_feed` por `topic_slug`.
+- A carga inicial lê `analysis_feed` por `topic_slug` do tema padrão.
+- O campo de tema dispara a Edge Function `search-web`: busca real na internet, com cache de 24 h
+  por tema em `web_searches` e limite por IP/hora.
+- Os candidatos são filtrados no front (`src/lib/websearch.js`): sai o que não é veículo de
+  imprensa (governo, enciclopédias, blogs, redes sociais) e fica uma matéria por veículo, no máximo
+  6 candidatos.
+- O usuário marca até 4 matérias; cada uma passa pela Edge Function `analyze-url`, que extrai o
+  texto, calcula o DNA e grava a matéria sob o tema pesquisado.
+- A comparação final é montada sobre as análises geradas, com destaque, ângulo, tom e Índice
+  Prisma de cada veículo; o radar e as divergências são recalculados.
 - Só entram linhas com `highlight` preenchido; URLs de `exemplo.com.br` são descartadas.
 - Mantém uma linha por veículo, priorizando a matéria mais recente e, em empate, a de maior
   confiança.
@@ -125,8 +135,9 @@ indícios retóricos de distorção.
 - Quando o termo buscado não corresponde ao exemplo, a tela avisa qual tema está sendo mostrado.
 - A leitura editorial é descritiva; não é um ranking de qualidade.
 
-**Limite:** a busca recupera clusters já gravados. Ela não dispara uma nova coleta de veículos no
-momento da consulta.
+**Limite:** a busca web é real e as matérias encontradas são analisadas de fato. O custo é limitado
+pelo teto de 4 matérias por rodada e pelo limite de análises por IP/hora; matérias paywalled ou sem
+texto extraível ficam de fora, e a tela avisa quantas foram descartadas.
 
 ---
 
@@ -160,44 +171,10 @@ inventa ratings. A metodologia de curadoria está em
 
 ---
 
-## `/blindspot` — BlindSpot Brasil
-
-**Explora:** quem cobriu um tema, quem está em silêncio e quais subtemas foram pouco explorados.
-
-**Dados e comportamento:**
-
-- Lê `blindspot_reports`, `blindspot_coverage`, `blindspot_gaps` e `blindspot_subthemes`.
-- Em falha ou modo mock, usa `BLINDSPOT` e exibe **dados de demonstração**.
-- O relatório de referência do seed cobre 30 dias. Os volumes de cobertura e os subtemas vêm desse
-  relatório.
-- O seletor de 7, 15, 30 ou 90 dias define o **tempo mínimo de silêncio** para um veículo aparecer
-  na lista de blindspots. Ele não refaz a coleta por período.
-- O indicador de confiabilidade cresce com o período e deve ser lido como heurística de leitura.
-- Silêncio não é tratado como intenção editorial.
-
----
-
-## `/replay` — Prisma Replay
-
-**Explora:** a evolução da narrativa quadro a quadro, com número de veículos, enquadramento
-dominante, sentimento, mistura de enquadramentos e expansão da cobertura.
-
-**Dados e comportamento:**
-
-- Lê `replay_events` do tema padrão.
-- Em falha ou modo mock, usa `REPLAY` e exibe **dados de demonstração**.
-- O player avança automaticamente, permite pausar e arrastar a linha do tempo.
-- A barra de mistura usa as chaves canônicas de `FRAMES` para manter as cores consistentes.
-
-**Limite:** a tela atual não oferece busca de tema nem link direto para outro replay; o serviço
-`fetchReplay(topic)` já aceita um tema, mas a interface usa o tema de referência.
-
----
-
 ## `/mapa` — Mapa de Polarização
 
-**Explora:** o cartograma das 27 UFs, o tema dominante, o índice de polarização, a distribuição
-temática, o ranking dos estados mais polarizados e a mistura nacional.
+**Explora:** o mapa das 27 UFs, o tema dominante, o índice de polarização, a distribuição temática, o
+ranking dos estados mais polarizados e a mistura nacional.
 
 **Dados e comportamento:**
 
@@ -209,7 +186,7 @@ temática, o ranking dos estados mais polarizados e a mistura nacional.
 - A seção “para quem serve” é posicionamento de produto, não uma funcionalidade interativa.
 
 **Limite:** os dados por UF são uma agregação do seed/backend, não uma medição estatística de
-opinião pública.
+opinião pública. A tela não promete leitura por grupo de veículos nem atualização em tempo real.
 
 ---
 
@@ -244,13 +221,12 @@ pitch deck.
 
 - **Modo mock:** `VITE_USE_MOCK=true` força as fixtures locais e não consulta o InsForge.
 - **Fallback:** quando o backend está configurado mas falha, as telas de leitura usam fixtures para
-  preservar a navegação. Comparação, BlindSpot e Replay sinalizam isso; a análise de URL nova e o
-  Radar de Enquadramento não fabricam resultado em produção.
+  preservar a navegação. Comparação sinaliza isso; a análise de URL nova, o Radar de Enquadramento e
+  as tendências não fabricam resultado em produção.
 - **Perspectivas:** em modo mock ou falha de consulta, o painel fica vazio e explica que ainda não
   há coberturas comparáveis; nenhum lado é inventado.
 - **Cobertura:** a página não dispara análise nova e não usa fixture. URL não analisada leva para
   `/analise`; cluster sem cobertura mostra estado vazio.
 - **Demonstração x produção:** o rodapé indica o modo configurado (“dados de demonstração” ou
   “dados do InsForge”). Um fallback pontual pode ocorrer mesmo com o InsForge configurado.
-- **Cores de enquadramento:** vêm de `src/data/frames.js`; mapa, replay e hero compartilham a mesma
-  fonte.
+- **Cores de enquadramento:** vêm de `src/data/frames.js`; mapa e hero compartilham a mesma fonte.

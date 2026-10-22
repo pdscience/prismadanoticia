@@ -32,22 +32,10 @@ const routes = [
     meta: { title: 'Cobertura da História | Prisma' },
   },
   {
-    path: '/blindspot',
-    name: 'blindspot',
-    component: () => import('@/views/BlindSpotView.vue'),
-    meta: { title: 'BlindSpot Brasil | Prisma' },
-  },
-  {
-    path: '/replay',
-    name: 'replay',
-    component: () => import('@/views/ReplayView.vue'),
-    meta: { title: 'Prisma Replay | Prisma' },
-  },
-  {
     path: '/mapa',
     name: 'map',
     component: () => import('@/views/MapView.vue'),
-    meta: { title: 'Mapa de Polarização em Tempo Real | Prisma' },
+    meta: { title: 'Mapa de Polarização por Estado | Prisma' },
   },
   {
     path: '/tecnologia',

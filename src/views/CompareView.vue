@@ -7,8 +7,10 @@ import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'
 import { COMPARISON, DNA_AXES, SAMPLE_ANALYSIS } from '@/data'
+import { buildComparisonFromAnalyses } from '@/lib/comparison'
 import { dnaAverage } from '@/lib/radar'
-import { fetchComparison } from '@/lib/services'
+import { analyzeArticles, fetchComparison, searchWebCoverage } from '@/lib/services'
+import { MAX_SELECTION, normalizeSearchResults } from '@/lib/websearch'
 import { useReveal } from '@/composables/useReveal'
 
 const { root } = useReveal()
@@ -17,6 +19,24 @@ const comparison = ref(COMPARISON)
 const query = ref(COMPARISON.topic)
 const rowKey = (row) => row?.id ?? row?.outlet
 const selected = ref(rowKey(COMPARISON.rows[0]))
+
+/** Etapas da busca: idle → searching → choosing → analyzing. */
+const phase = ref('idle')
+const candidates = ref([])
+const picked = ref([])
+const progress = ref({ done: 0, total: 0 })
+const feedback = ref(null)
+const source = ref('cluster')
+
+const busy = computed(() => phase.value === 'searching' || phase.value === 'analyzing')
+const selectedCount = computed(() => picked.value.length)
+const canCompare = computed(() => selectedCount.value > 0 && phase.value !== 'analyzing')
+const searchLabel = computed(() => {
+  if (phase.value === 'searching') return 'Buscando na internet…'
+  if (phase.value === 'analyzing')
+    return `Analisando ${progress.value.done} de ${progress.value.total}…`
+  return 'Buscar na internet'
+})
 
 const rows = computed(() => comparison.value.rows)
 const current = computed(() => rows.value.find((r) => rowKey(r) === selected.value))
@@ -45,9 +65,87 @@ const divergences = computed(() => {
 })
 
 async function search() {
+  const term = query.value.trim()
+  if (!term) return
+  feedback.value = null
+  phase.value = 'searching'
+
+  try {
+    const result = await searchWebCoverage(term)
+    const list = normalizeSearchResults(result.results)
+    if (!list.length) {
+      candidates.value = []
+      phase.value = 'idle'
+      feedback.value = {
+        type: 'error',
+        message: 'Nenhuma matéria de imprensa foi encontrada para este tema.',
+      }
+      return
+    }
+    candidates.value = list
+    picked.value = list.slice(0, MAX_SELECTION).map((item) => item.url)
+    phase.value = 'choosing'
+  } catch (error) {
+    phase.value = 'idle'
+    feedback.value = {
+      type: 'error',
+      message: error instanceof Error ? error.message : 'Falha ao buscar na internet.',
+    }
+  }
+}
+
+function toggle(url) {
+  picked.value = picked.value.includes(url)
+    ? picked.value.filter((item) => item !== url)
+    : [...picked.value, url].slice(0, MAX_SELECTION)
+}
+
+async function compareSelection() {
   const term = query.value.trim() || COMPARISON.topic
-  comparison.value = await fetchComparison(term)
-  selected.value = rowKey(comparison.value.rows[0]) ?? ''
+  const chosen = candidates.value.filter((item) => picked.value.includes(item.url))
+  if (!chosen.length) return
+
+  phase.value = 'analyzing'
+  progress.value = { done: 0, total: chosen.length }
+  feedback.value = null
+
+  try {
+    const { analyses, failures } = await analyzeArticles(
+      chosen.map((item) => item.url),
+      term,
+      (done, total) => {
+        progress.value = { done, total }
+      },
+    )
+
+    if (!analyses.length) {
+      phase.value = 'choosing'
+      feedback.value = {
+        type: 'error',
+        message: 'Não foi possível analisar as matérias selecionadas.',
+      }
+      return
+    }
+
+    comparison.value = buildComparisonFromAnalyses(analyses, term)
+    selected.value = rowKey(comparison.value.rows[0]) ?? ''
+    source.value = 'web'
+    phase.value = 'idle'
+    candidates.value = []
+    picked.value = []
+    if (failures.length) {
+      feedback.value = {
+        type: 'info',
+        message: `${failures.length} matéria(s) não puderam ser lidas e ficaram de fora.`,
+      }
+    }
+  } catch (error) {
+    phase.value = 'choosing'
+    feedback.value = {
+      type: 'error',
+      message: error instanceof Error ? error.message : 'Falha ao comparar as matérias.',
+    }
+  }
 }
 
 onMounted(async () => {
@@ -65,8 +163,8 @@ onMounted(async () => {
           O mesmo fato, <span class="text-gradient">vários ângulos.</span>
         </h1>
         <p class="mx-auto mt-4 max-w-xl text-base text-ink-muted">
-          Pesquise um tema. O Engine recupera o cluster de matérias semelhantes, organiza por
-          veículo e mostra qual destaque cada um escolheu.
+          Pesquise um tema na internet. O Engine encontra as matérias mais recentes, analisa cada
+          uma e mostra qual destaque cada veículo escolheu.
         </p>
 
         <form class="mt-8 flex flex-col gap-3 sm:flex-row" @submit.prevent="search">
@@ -76,10 +174,70 @@ onMounted(async () => {
             v-model="query"
             type="text"
             placeholder="Reforma Tributária"
-            class="h-13 flex-1 rounded-full border border-hairline bg-surface px-5 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted/70 focus:border-electric-soft"
+            :disabled="busy"
+            class="h-13 flex-1 rounded-full border border-hairline bg-surface px-5 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted/70 focus:border-electric-soft disabled:opacity-60"
           />
-          <PButton type="submit">Comparar coberturas</PButton>
+          <PButton type="submit" :disabled="busy">{{ searchLabel }}</PButton>
         </form>
+
+        <p
+          v-if="feedback"
+          class="mx-auto mt-4 max-w-2xl text-center text-xs"
+          :class="feedback.type === 'error' ? 'text-energy' : 'text-ink-muted'"
+        >
+          {{ feedback.message }}
+        </p>
+
+        <!-- matérias encontradas na internet -->
+        <PCard v-if="candidates.length" class="mt-8 text-left" accent="#2D6BFF">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="text-lg">Matérias encontradas</h2>
+              <p class="mt-1.5 text-xs text-ink-muted">
+                Marque até {{ MAX_SELECTION }} matérias para analisar e comparar.
+              </p>
+            </div>
+            <PButton :disabled="!canCompare" @click="compareSelection">
+              {{
+                phase === 'analyzing'
+                  ? `Analisando ${progress.done} de ${progress.total}…`
+                  : `Analisar e comparar (${selectedCount})`
+              }}
+            </PButton>
+          </div>
+
+          <ul class="mt-5 space-y-2">
+            <li v-for="item in candidates" :key="item.url">
+              <label
+                class="flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors"
+                :class="
+                  picked.includes(item.url)
+                    ? 'border-electric-soft/50 bg-electric/5'
+                    : 'border-hairline hover:bg-surface'
+                "
+              >
+                <input
+                  type="checkbox"
+                  :checked="picked.includes(item.url)"
+                  class="mt-1 h-4 w-4 accent-electric"
+                  @change="toggle(item.url)"
+                />
+                <span class="flex-1">
+                  <span class="block font-display text-sm font-medium">{{ item.outlet }}</span>
+                  <span class="mt-1 block text-sm text-ink-muted">{{ item.title }}</span>
+                  <a
+                    :href="item.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-1.5 inline-block text-[0.7rem] text-ink-muted underline decoration-dotted hover:text-ink"
+                    @click.stop
+                    >abrir matéria</a
+                  >
+                </span>
+              </label>
+            </li>
+          </ul>
+        </PCard>
       </header>
 
       <!-- contexto do cluster -->
@@ -89,6 +247,7 @@ onMounted(async () => {
         <PBadge color="#FFC24B"
           >{{ comparison.outletCount ?? rows.length }} veículos comparados</PBadge
         >
+        <PBadge v-if="source === 'web'" color="#2D6BFF">busca na internet</PBadge>
         <PBadge v-if="comparison.demo" color="#FFC24B">dados de demonstração</PBadge>
       </div>
 
@@ -225,10 +384,6 @@ onMounted(async () => {
               dados e impacto fiscal, outros ampliam o ângulo social ou crítico. A comparação é
               descritiva, não um ranking de qualidade.
             </p>
-            <div class="mt-5 flex flex-wrap gap-3">
-              <PButton to="/blindspot" variant="outline" size="sm">Ver quem ficou de fora</PButton>
-              <PButton to="/replay" variant="ghost" size="sm">Ver a linha do tempo</PButton>
-            </div>
           </PCard>
         </div>
       </div>
@@ -237,8 +392,11 @@ onMounted(async () => {
         Exemplo de referência: “{{ SAMPLE_ANALYSIS.title }}”
       </p>
       <p v-else class="mt-8 text-center text-xs text-ink-muted">
-        Cluster “{{ comparison.topic }}” · {{ comparison.outletCount ?? rows.length }} veículos
-        comparados.
+        {{
+          source === 'web'
+            ? `Busca na internet · “${comparison.topic}” · ${comparison.outletCount ?? rows.length} veículos comparados.`
+            : `Cluster “${comparison.topic}” · ${comparison.outletCount ?? rows.length} veículos comparados.`
+        }}
       </p>
     </div>
   </div>
