@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import CoverageBlindspot from '@/components/coverage/CoverageBlindspot.vue'
+import CoverageBlindspot from '@/components/cobertura/CoverageBlindspot.vue'
 
 describe('alerta de ponto cego', () => {
   it('confirma quando há amostra suficiente', () => {

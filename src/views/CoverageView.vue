@@ -2,9 +2,9 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
-import CoverageBar from '@/components/coverage/CoverageBar.vue'
-import CoverageBlindspot from '@/components/coverage/CoverageBlindspot.vue'
-import CoverageSide from '@/components/coverage/CoverageSide.vue'
+import CoverageBar from '@/components/cobertura/CoverageBar.vue'
+import CoverageBlindspot from '@/components/cobertura/CoverageBlindspot.vue'
+import CoverageSide from '@/components/cobertura/CoverageSide.vue'
 import PBadge from '@/components/ui/PBadge.vue'
 import PButton from '@/components/ui/PButton.vue'
 import PCard from '@/components/ui/PCard.vue'

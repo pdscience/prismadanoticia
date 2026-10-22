@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import CoverageBar from '@/components/coverage/CoverageBar.vue'
+import CoverageBar from '@/components/cobertura/CoverageBar.vue'
 import { buildCoverage } from '@/lib/coverage'
 
 function coverage() {

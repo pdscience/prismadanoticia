@@ -41,7 +41,11 @@ const ariaLabel = computed(
     </div>
 
     <div class="mt-4 grid gap-3 sm:grid-cols-3">
-      <div v-for="side in coverage.sides" :key="side.key" class="rounded-xl bg-surface/40 px-3 py-2">
+      <div
+        v-for="side in coverage.sides"
+        :key="side.key"
+        class="rounded-xl bg-surface/40 px-3 py-2"
+      >
         <span class="flex items-center gap-2 text-xs font-medium text-ink">
           <span class="h-2 w-2 rounded-full" :style="{ background: side.color }" />
           {{ side.label }}

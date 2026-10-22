@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import CoverageSide from '@/components/coverage/CoverageSide.vue'
+import CoverageSide from '@/components/cobertura/CoverageSide.vue'
 
 const side = {
   key: 'centro',

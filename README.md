@@ -207,6 +207,16 @@ Ambas ignoram o veículo de demonstração (`veiculo-de-exemplo`). Em produção
 não vira número fictício: a seção de tendências mostra estado de erro e o hero exibe `—` até haver
 dado.
 
+### Build e deploy do frontend
+
+O `vercel.json` fixa `installCommand`, `buildCommand` e `outputDirectory`, e o `.vercelignore`
+mantém as edge functions, migrations, testes e documentação fora do upload do frontend.
+
+Atenção: a CLI do InsForge exclui do upload qualquer pasta chamada `coverage` (pensada para
+relatório de cobertura de testes). Por isso os componentes da Cobertura vivem em
+`src/components/cobertura/`. Renomear a pasta quebra o build no Vercel com
+`UNLOADABLE_DEPENDENCY`.
+
 ### Limites e deploy do frontend
 
 Cada IP pode disparar 10 análises novas por hora; o projeto também tem um teto global de 100 por

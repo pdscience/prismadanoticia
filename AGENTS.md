@@ -42,4 +42,5 @@ Key patterns:
 - BlindSpot and Replay are retired: no routes, no views, no services. Their tables stay in the database but are unused.
 - Schema and seed live in `migrations/`; apply with `npx -y @insforge/cli@latest db migrations up --all`.
 - Deploy the frontend with `npx -y @insforge/cli@latest deployments deploy .` after setting the `VITE_*` env vars in `deployments env set`.
+- The deploy upload skips any path segment named `coverage`, `build`, `skills`, `cache`, `turbo` or `dist`. Never name a frontend folder `coverage`: the components live in `src/components/cobertura/`.
 - Run `npm run lint`, `npm run format:check`, `npm run test:run`, and `npm run build` before committing.

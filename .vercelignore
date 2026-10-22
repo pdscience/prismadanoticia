@@ -1,0 +1,7 @@
+# A build do frontend não precisa das edge functions (Deno), das migrations,
+# dos testes nem da documentação. Isso reduz o upload e evita que o compilador
+# tente resolver os imports `npm:@insforge/sdk` das funções.
+functions/
+migrations/
+tests/
+docs/
