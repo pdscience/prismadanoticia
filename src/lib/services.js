@@ -173,7 +173,7 @@ export async function analyzeArticles(urls, topic = '', onProgress) {
     }
   }
 
-  const workers = Array.from({ length: Math.min(2, queue.length) }, worker)
+  const workers = Array.from({ length: Math.min(1, queue.length) }, worker)
   await Promise.all(workers)
   return { analyses, failures }
 }

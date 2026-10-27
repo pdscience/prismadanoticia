@@ -118,11 +118,14 @@ async function compareSelection() {
       },
     )
 
-    if (!analyses.length) {
+    if (analyses.length < 2) {
       phase.value = 'choosing'
       feedback.value = {
         type: 'error',
-        message: 'Não foi possível analisar as matérias selecionadas.',
+        message:
+          analyses.length === 1
+            ? 'Apenas 1 matéria foi analisada com sucesso. A comparação requer ao menos 2 matérias.'
+            : 'Não foi possível analisar as matérias selecionadas (limite de API ou timeout).',
       }
       return
     }

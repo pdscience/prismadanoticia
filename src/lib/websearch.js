@@ -85,7 +85,7 @@ const OUTLET_NAMES = {
 export const MAX_CANDIDATES = 6
 
 /** Quantidade máxima de matérias analisadas por rodada. */
-export const MAX_SELECTION = 4
+export const MAX_SELECTION = 3
 
 function hostOf(url) {
   try {
