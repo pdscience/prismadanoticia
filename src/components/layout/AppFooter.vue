@@ -16,12 +16,7 @@ const groups = [
   },
   {
     title: 'Inteligência',
-    links: [
-      { to: '/mapa', label: 'Mapa de Polarização' },
-      { to: '/tecnologia', label: 'Prisma Engine' },
-      { to: '/tecnologia#banco', label: 'Banco Inteligente' },
-      { to: '/tecnologia#extensao', label: 'Extensão Chrome' },
-    ],
+    links: [{ to: '/mapa', label: 'Mapa de Polarização' }],
   },
   {
     title: 'Marca',

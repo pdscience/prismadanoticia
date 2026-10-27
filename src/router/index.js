@@ -37,12 +37,7 @@ const routes = [
     component: () => import('@/views/MapView.vue'),
     meta: { title: 'Mapa de Polarização por Estado | Prisma' },
   },
-  {
-    path: '/tecnologia',
-    name: 'tech',
-    component: () => import('@/views/TechView.vue'),
-    meta: { title: 'Prisma Engine — Tecnologia | Prisma' },
-  },
+
   {
     path: '/marca',
     name: 'brand',

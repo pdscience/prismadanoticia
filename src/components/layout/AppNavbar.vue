@@ -18,7 +18,6 @@ const links = [
   { to: '/comparacao', label: 'Comparação' },
   { to: '/cobertura', label: 'Cobertura' },
   { to: '/mapa', label: 'Mapa' },
-  { to: '/tecnologia', label: 'Tecnologia' },
 ]
 
 function onScroll() {
