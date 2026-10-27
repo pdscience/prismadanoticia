@@ -75,18 +75,20 @@ async function search() {
     try {
       feedback.value = { type: 'info', message: 'Lendo matéria para descobrir o tema...' }
       const analysis = await fetchAnalysis(rawInput)
-      if (analysis?.topic) {
-        term = analysis.topic
+      if (analysis?.title) {
+        term = analysis.title
         query.value = term
       } else {
         const parsed = new URL(rawInput)
-        term = parsed.pathname.split('/').filter(Boolean).pop().replace(/[-_]/g, ' ') || rawInput
+        const slug = parsed.pathname.split('/').filter(Boolean).pop() || ''
+        term = slug.replace(/[-_]/g, ' ') || rawInput
         query.value = term
       }
     } catch {
       try {
         const parsed = new URL(rawInput)
-        term = parsed.pathname.split('/').filter(Boolean).pop().replace(/[-_]/g, ' ') || rawInput
+        const slug = parsed.pathname.split('/').filter(Boolean).pop() || ''
+        term = slug.replace(/[-_]/g, ' ') || rawInput
         query.value = term
       } catch {
         term = rawInput
