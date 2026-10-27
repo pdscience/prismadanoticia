@@ -55,7 +55,7 @@ const clusterAverage = computed(() => {
 
 /** Maior divergência entre veículos por eixo. */
 const divergences = computed(() => {
-  if (!rows.value.length) return []
+  if (rows.value.length < 2) return []
   return DNA_AXES.map((axis) => {
     const values = rows.value.map((r) => ({ outlet: r.outlet, value: r.dna[axis.key] }))
     const min = values.reduce((a, b) => (b.value < a.value ? b : a))
@@ -353,7 +353,7 @@ onMounted(async () => {
             <p class="mt-1.5 text-xs text-ink-muted">
               Diferença entre a maior e a menor pontuação de cada eixo.
             </p>
-            <ul class="mt-5 space-y-4">
+            <ul v-if="divergences.length" class="mt-5 space-y-4">
               <li v-for="d in divergences.slice(0, 4)" :key="d.axis.key">
                 <div class="flex items-baseline justify-between text-sm">
                   <span class="font-medium">{{ d.axis.label }}</span>
@@ -375,6 +375,9 @@ onMounted(async () => {
                 </p>
               </li>
             </ul>
+            <p v-else class="mt-5 text-xs text-ink-muted">
+              Necessário ao menos 2 veículos distintos para calcular divergências.
+            </p>
           </PCard>
 
           <PCard data-reveal accent="#FFC24B">

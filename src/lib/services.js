@@ -200,7 +200,8 @@ export function fetchComparison(topic = COMPARISON.topic) {
           .limit(20),
       )
       const comparison = buildComparison(rows, topic)
-      if (!comparison.rows.length) throw new Error('Sem comparação para este tema')
+      if (comparison.rows.length < 2)
+        throw new Error('Comparação requer ao menos 2 veículos distintos')
       return comparison
     },
     () => ({
