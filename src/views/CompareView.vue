@@ -9,7 +9,7 @@ import PCard from '@/components/ui/PCard.vue'
 import { COMPARISON, DNA_AXES, SAMPLE_ANALYSIS } from '@/data'
 import { buildComparisonFromAnalyses } from '@/lib/comparison'
 import { dnaAverage } from '@/lib/radar'
-import { analyzeArticles, fetchComparison, searchWebCoverage } from '@/lib/services'
+import { analyzeArticles, fetchAnalysis, fetchComparison, searchWebCoverage } from '@/lib/services'
 import { MAX_SELECTION, normalizeSearchResults } from '@/lib/websearch'
 import { useReveal } from '@/composables/useReveal'
 
@@ -65,10 +65,35 @@ const divergences = computed(() => {
 })
 
 async function search() {
-  const term = query.value.trim()
-  if (!term) return
+  const rawInput = query.value.trim()
+  if (!rawInput) return
   feedback.value = null
   phase.value = 'searching'
+
+  let term = rawInput
+  if (/^https?:\/\//i.test(rawInput)) {
+    try {
+      feedback.value = { type: 'info', message: 'Lendo matéria para descobrir o tema...' }
+      const analysis = await fetchAnalysis(rawInput)
+      if (analysis?.topic) {
+        term = analysis.topic
+        query.value = term
+      } else {
+        const parsed = new URL(rawInput)
+        term = parsed.pathname.split('/').filter(Boolean).pop().replace(/[-_]/g, ' ') || rawInput
+        query.value = term
+      }
+    } catch {
+      try {
+        const parsed = new URL(rawInput)
+        term = parsed.pathname.split('/').filter(Boolean).pop().replace(/[-_]/g, ' ') || rawInput
+        query.value = term
+      } catch {
+        term = rawInput
+      }
+    }
+    feedback.value = null
+  }
 
   try {
     const result = await searchWebCoverage(term)
@@ -176,7 +201,7 @@ onMounted(async () => {
             id="topic"
             v-model="query"
             type="text"
-            placeholder="Reforma Tributária"
+            placeholder="Reforma Tributária ou cole uma URL"
             :disabled="busy"
             class="h-13 flex-1 rounded-full border border-hairline bg-surface px-5 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted/70 focus:border-electric-soft disabled:opacity-60"
           />
